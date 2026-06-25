@@ -1,0 +1,235 @@
+# Data Model Draft
+
+## Modeling Goals
+
+The data model should support Chinese-specific vocabulary, review scheduling, review history, quiz attempts, and dashboard metrics without becoming a large curriculum platform.
+
+The MVP can be single-user, but models should be easy to scope by `userId` later.
+
+## Entity Overview
+
+Core entities:
+
+- `User`
+- `VocabularyItem`
+- `Level`
+- `Tag`
+- `VocabularyTag`
+- `ReviewCard`
+- `ReviewEvent`
+- `ReviewSession`
+- `QuizSession`
+- `QuizQuestion`
+
+Optional later entities:
+
+- `Deck`
+- `ExampleSentence`
+- `AudioAsset`
+- `AiGeneratedHint`
+
+## Draft Prisma-Style Schema
+
+This is a planning draft, not final app code.
+
+```prisma
+model User {
+  id              String           @id @default(cuid())
+  email           String?          @unique
+  name            String?
+  vocabularyItems VocabularyItem[]
+  reviewSessions  ReviewSession[]
+  quizSessions    QuizSession[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Level {
+  id              String           @id @default(cuid())
+  code            String           @unique
+  name            String
+  sortOrder       Int
+  vocabularyItems VocabularyItem[]
+  createdAt       DateTime         @default(now())
+}
+
+model VocabularyItem {
+  id             String          @id @default(cuid())
+  userId         String?
+  user           User?           @relation(fields: [userId], references: [id])
+  levelId        String?
+  level          Level?          @relation(fields: [levelId], references: [id])
+  hanzi          String
+  pinyin         String
+  meaning        String
+  partOfSpeech   String?
+  measureWord    String?
+  exampleChinese String?
+  examplePinyin  String?
+  exampleEnglish String?
+  notes          String?
+  source         String?
+  isArchived     Boolean         @default(false)
+  reviewCard     ReviewCard?
+  tags           VocabularyTag[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([levelId])
+  @@index([hanzi])
+}
+
+model Tag {
+  id              String          @id @default(cuid())
+  userId          String?
+  name            String
+  vocabularyItems VocabularyTag[]
+  createdAt       DateTime        @default(now())
+
+  @@unique([userId, name])
+}
+
+model VocabularyTag {
+  vocabularyItemId String
+  tagId            String
+  vocabularyItem   VocabularyItem @relation(fields: [vocabularyItemId], references: [id], onDelete: Cascade)
+  tag              Tag            @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([vocabularyItemId, tagId])
+}
+
+model ReviewCard {
+  id               String          @id @default(cuid())
+  vocabularyItemId String          @unique
+  vocabularyItem   VocabularyItem  @relation(fields: [vocabularyItemId], references: [id], onDelete: Cascade)
+  dueAt            DateTime
+  intervalDays     Int             @default(0)
+  easeFactor       Float           @default(2.5)
+  reviewCount      Int             @default(0)
+  lapseCount       Int             @default(0)
+  lastReviewedAt   DateTime?
+  status           ReviewStatus    @default(ACTIVE)
+  reviewEvents     ReviewEvent[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([dueAt])
+  @@index([status, dueAt])
+}
+
+model ReviewSession {
+  id          String        @id @default(cuid())
+  userId      String?
+  user        User?         @relation(fields: [userId], references: [id])
+  startedAt   DateTime      @default(now())
+  completedAt DateTime?
+  events      ReviewEvent[]
+
+  @@index([userId, startedAt])
+}
+
+model ReviewEvent {
+  id               String        @id @default(cuid())
+  reviewCardId     String
+  reviewCard       ReviewCard    @relation(fields: [reviewCardId], references: [id], onDelete: Cascade)
+  reviewSessionId  String?
+  reviewSession    ReviewSession? @relation(fields: [reviewSessionId], references: [id])
+  grade            ReviewGrade
+  previousDueAt    DateTime
+  nextDueAt        DateTime
+  previousInterval Int
+  nextInterval     Int
+  previousEase     Float
+  nextEase         Float
+  reviewedAt       DateTime      @default(now())
+  responseMs       Int?
+
+  @@index([reviewCardId, reviewedAt])
+  @@index([reviewSessionId])
+  @@index([reviewedAt])
+}
+
+model QuizSession {
+  id             String         @id @default(cuid())
+  userId         String?
+  user           User?          @relation(fields: [userId], references: [id])
+  mode           QuizMode
+  levelFilter    String?
+  startedAt      DateTime       @default(now())
+  completedAt    DateTime?
+  score          Int            @default(0)
+  totalQuestions Int            @default(0)
+  questions      QuizQuestion[]
+
+  @@index([userId, startedAt])
+}
+
+model QuizQuestion {
+  id               String         @id @default(cuid())
+  quizSessionId    String
+  quizSession      QuizSession    @relation(fields: [quizSessionId], references: [id], onDelete: Cascade)
+  vocabularyItemId String
+  prompt           String
+  correctAnswer    String
+  selectedAnswer   String?
+  isCorrect        Boolean?
+  answeredAt       DateTime?
+}
+
+enum ReviewStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum ReviewGrade {
+  AGAIN
+  HARD
+  GOOD
+  EASY
+}
+
+enum QuizMode {
+  HANZI_TO_MEANING
+  MEANING_TO_HANZI
+  PINYIN_TO_MEANING
+}
+```
+
+## Important Relationships
+
+- One `VocabularyItem` has one `ReviewCard`.
+- One `ReviewCard` has many `ReviewEvent` records.
+- One `ReviewSession` groups many `ReviewEvent` records.
+- One `QuizSession` groups many `QuizQuestion` records.
+- `QuizQuestion` references vocabulary but does not update `ReviewCard`.
+- `VocabularyItem` can belong to one `Level` and many `Tag` records.
+
+## Dashboard Query Needs
+
+The model should make these queries straightforward:
+
+- Due cards: `ReviewCard` where `status = ACTIVE` and `dueAt <= now`.
+- Reviewed today: `ReviewEvent` where `reviewedAt` is within the user's day.
+- Accuracy: count of `GOOD` and `EASY` compared with all review events.
+- Difficult cards: high `lapseCount`, recent `AGAIN`, or low ease factor.
+- Level distribution: vocabulary count grouped by `Level`.
+- Recent activity: latest `ReviewEvent` and `QuizSession` records.
+
+## Data Integrity Notes
+
+- Create `ReviewCard` in the same flow as `VocabularyItem`.
+- Use transactions when recording a review event and updating the review card.
+- Keep review history immutable after creation.
+- Soft archive vocabulary through `isArchived` or review status instead of deleting by default.
+- Add per-user query scoping before production if auth is enabled.
+
+## Seed Data Strategy
+
+Safe MVP seed data:
+
+- Create levels such as HSK 1 through HSK 6 or custom Beginner, Elementary, Intermediate.
+- Add a small manually authored sample vocabulary set.
+
+Avoid importing large HSK lists until licensing and attribution are clear.
