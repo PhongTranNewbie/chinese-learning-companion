@@ -1,10 +1,44 @@
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export default async function VocabularyPage() {
+type VocabularyPageProps = {
+  searchParams: Promise<{
+    q?: string;
+    levelId?: string;
+  }>;
+};
+
+export default async function VocabularyPage({
+  searchParams,
+}: VocabularyPageProps) {
+  const levels = await prisma.level.findMany({
+    orderBy: {
+      sortOrder: "asc",
+    },
+  });
+  const params = await searchParams;
+  const query = params.q?.trim() ?? "";
+  const levelId = params.levelId?.trim() ?? "";
+
+  const where: Prisma.VocabularyItemWhereInput = {
+    isArchived: false,
+    ...(levelId ? { levelId } : {}),
+    ...(query
+      ? {
+          OR: [
+            { hanzi: { contains: query } },
+            { pinyin: { contains: query } },
+            { meaning: { contains: query } },
+          ],
+        }
+      : {}),
+  };
+
   const vocabularyItems = await prisma.vocabularyItem.findMany({
+    where,
     include: {
       level: true,
       reviewCard: true,
@@ -33,13 +67,56 @@ export default async function VocabularyPage() {
         </Link>
       </div>
 
+      <form className="mt-6 grid gap-4 rounded-md border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_220px_auto]">
+        <label className="space-y-2">
+          <span className="text-sm font-medium text-slate-700">Search</span>
+          <input
+            name="q"
+            defaultValue={query}
+            placeholder="Hanzi, pinyin, or meaning"
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-red-600 focus:ring-2 focus:ring-red-100"
+          />
+        </label>
+        <label className="space-y-2">
+          <span className="text-sm font-medium text-slate-700">Level</span>
+          <select
+            name="levelId"
+            defaultValue={levelId}
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-red-600 focus:ring-2 focus:ring-red-100"
+          >
+            <option value="">All active levels</option>
+            {levels.map((level) => (
+              <option key={level.id} value={level.id}>
+                {level.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="flex items-end gap-3">
+          <button
+            type="submit"
+            className="rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+          >
+            Apply
+          </button>
+          <Link
+            href="/vocabulary"
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Reset
+          </Link>
+        </div>
+      </form>
+
       {vocabularyItems.length === 0 ? (
         <section className="mt-10 rounded-md border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
           <h2 className="text-lg font-semibold text-slate-950">
-            No vocabulary yet
+            {query || levelId ? "No matching vocabulary" : "No vocabulary yet"}
           </h2>
           <p className="mt-2 text-slate-600">
-            Add your first word to create its initial review card.
+            {query || levelId
+              ? "Try a different search or level filter."
+              : "Add your first word to create its initial review card."}
           </p>
         </section>
       ) : (
@@ -52,6 +129,7 @@ export default async function VocabularyPage() {
                 <th className="px-4 py-3 font-semibold">Meaning</th>
                 <th className="px-4 py-3 font-semibold">Level</th>
                 <th className="px-4 py-3 font-semibold">Due</th>
+                <th className="px-4 py-3 font-semibold">Details</th>
               </tr>
             </thead>
             <tbody>
@@ -67,6 +145,14 @@ export default async function VocabularyPage() {
                   </td>
                   <td className="px-4 py-3 text-slate-700">
                     {item.reviewCard?.dueAt.toLocaleDateString() ?? "Missing"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/vocabulary/${item.id}`}
+                      className="font-medium text-red-700 hover:text-red-800"
+                    >
+                      Open
+                    </Link>
                   </td>
                 </tr>
               ))}
