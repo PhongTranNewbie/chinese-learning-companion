@@ -2,7 +2,7 @@
 
 A Mandarin vocabulary study app planned around level-based organization, spaced repetition reviews, review history, dashboard metrics, and quiz practice.
 
-This repository is currently at Phase 1: project foundation only. Product features will be implemented in later phases.
+This repository is currently at Phase 2A: vocabulary creation foundation.
 
 ## Tech Stack
 
@@ -33,10 +33,24 @@ Start PostgreSQL:
 docker compose up -d
 ```
 
+The local database is published on host port `5433` to avoid collisions with other PostgreSQL services.
+
 Generate the Prisma client:
 
 ```powershell
 npx prisma generate
+```
+
+Run the initial migration:
+
+```powershell
+npx prisma migrate dev
+```
+
+Seed safe level labels:
+
+```powershell
+npm run db:seed
 ```
 
 Validate the Prisma schema:
@@ -72,11 +86,13 @@ Implemented:
 - Tailwind CSS setup.
 - Docker Compose PostgreSQL service.
 - Prisma schema draft for the learning domain.
+- Initial vocabulary creation flow.
+- Minimal vocabulary list.
+- Level-only seed script.
 - Basic README setup instructions.
 
 Not implemented yet:
 
-- Vocabulary UI.
 - Review flow.
 - Dashboard.
 - Quiz mode.
