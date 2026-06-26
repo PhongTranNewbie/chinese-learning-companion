@@ -1,17 +1,27 @@
 # Chinese Learning Companion
 
-A Mandarin vocabulary study app planned around level-based organization, spaced repetition reviews, review history, dashboard metrics, and quiz practice.
+A focused Mandarin vocabulary study app with vocabulary management, level organization, spaced repetition reviews, review history, and a database-backed learning dashboard.
 
-This repository is currently at Phase 2A: vocabulary creation foundation.
+The current MVP is built for local portfolio demo use. It does not include auth, quiz mode, AI features, or production deployment yet.
+
+## Features
+
+- Create, edit, search, filter, and archive vocabulary items.
+- Organize vocabulary by seeded HSK level labels.
+- Automatically create one review card for each vocabulary item.
+- Review due cards with `AGAIN`, `HARD`, `GOOD`, and `EASY` grades.
+- Persist review history with `ReviewEvent` records.
+- Show a dashboard with active vocabulary, due reviews, reviews completed today, archived count, recent review activity, upcoming reviews, and level breakdown.
 
 ## Tech Stack
 
 - Next.js App Router
 - TypeScript
 - Tailwind CSS
-- Prisma
+- Prisma 7
 - PostgreSQL
 - Docker Compose
+- Vitest
 
 ## Local Setup
 
@@ -30,36 +40,17 @@ Copy-Item .env.example .env
 Start PostgreSQL:
 
 ```powershell
-docker compose up -d
+docker compose up -d postgres
 ```
 
 The local database is published on host port `5433` to avoid collisions with other PostgreSQL services.
 
-Generate the Prisma client:
-
-```powershell
-npx prisma generate
-```
-
-Run the initial migration:
+Run migrations and seed safe level labels:
 
 ```powershell
 npx prisma migrate dev
-```
-
-Seed safe level labels:
-
-```powershell
 npm run db:seed
 ```
-
-Validate the Prisma schema:
-
-```powershell
-npx prisma validate
-```
-
-Prisma reads the database URL from `.env` through `prisma.config.ts`.
 
 Run the development server:
 
@@ -67,35 +58,36 @@ Run the development server:
 npm run dev
 ```
 
+Open:
+
+- Dashboard: `http://localhost:3000`
+- Vocabulary: `http://localhost:3000/vocabulary`
+- Review: `http://localhost:3000/review`
+
 ## Verification Commands
 
 ```powershell
 npm run lint
 npm run typecheck
+npm test
 npm run build
-docker compose config
 npx prisma validate
+git diff --check
 ```
 
-## Current Scope
+## Demo Flow
 
-Implemented:
+1. Open the dashboard.
+2. Add a vocabulary item.
+3. Confirm it appears in the active vocabulary list.
+4. Open the detail page and inspect its review card.
+5. Review a due card.
+6. Return to the dashboard and confirm recent review activity updates.
+7. Archive a vocabulary item and confirm it no longer appears in active review flows.
 
-- Next.js App Router foundation.
-- TypeScript configuration.
-- Tailwind CSS setup.
-- Docker Compose PostgreSQL service.
-- Prisma schema draft for the learning domain.
-- Initial vocabulary creation flow.
-- Minimal vocabulary list.
-- Level-only seed script.
-- Basic README setup instructions.
+## Not Implemented Yet
 
-Not implemented yet:
-
-- Review flow.
-- Dashboard.
-- Quiz mode.
 - Authentication.
-- AI features.
+- Quiz mode.
+- AI-generated examples or mnemonics.
 - Production deployment.

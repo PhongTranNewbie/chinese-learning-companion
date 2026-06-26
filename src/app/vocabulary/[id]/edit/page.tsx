@@ -41,7 +41,7 @@ export default async function EditVocabularyPage({
         >
           Back to details
         </Link>
-        <h1 className="mt-3 text-3xl font-semibold text-slate-950">
+        <h1 className="mt-3 text-3xl font-semibold text-slate-950 sm:text-4xl">
           Edit vocabulary
         </h1>
         <p className="mt-2 text-slate-600">
@@ -49,7 +49,7 @@ export default async function EditVocabularyPage({
         </p>
       </div>
 
-      <section className="mt-8 rounded-md border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="mt-8 rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <VocabularyCreateForm
           levels={levels}
           vocabularyItem={vocabularyItem}

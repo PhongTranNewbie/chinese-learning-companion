@@ -42,7 +42,7 @@ export default async function ReviewPage() {
           <p className="text-sm font-medium uppercase tracking-wide text-red-700">
             Review
           </p>
-          <h1 className="mt-2 text-3xl font-semibold text-slate-950">
+          <h1 className="mt-2 text-3xl font-semibold text-slate-950 sm:text-4xl">
             Due cards
           </h1>
           <p className="mt-2 text-slate-600">
@@ -65,6 +65,20 @@ export default async function ReviewPage() {
           <p className="mt-2 text-slate-600">
             New vocabulary appears here when its review card is due.
           </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/vocabulary/new"
+              className="inline-flex rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
+            >
+              Add vocabulary
+            </Link>
+            <Link
+              href="/vocabulary"
+              className="inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              View vocabulary
+            </Link>
+          </div>
         </section>
       ) : (
         <section className="mt-8 space-y-4">

@@ -11,9 +11,9 @@ export default async function Home() {
       <section className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-medium uppercase tracking-wide text-red-700">
-            Chinese Learning Companion
+            Dashboard
           </p>
-          <h1 className="mt-2 text-3xl font-semibold text-slate-950">
+          <h1 className="mt-2 text-3xl font-semibold text-slate-950 sm:text-4xl">
             Learning dashboard
           </h1>
           <p className="mt-2 max-w-2xl text-slate-600">
@@ -30,13 +30,13 @@ export default async function Home() {
           </Link>
           <Link
             href="/vocabulary/new"
-            className="inline-flex items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-white"
+            className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             Add vocabulary
           </Link>
           <Link
             href="/vocabulary"
-            className="inline-flex items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-white"
+            className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             View vocabulary
           </Link>
@@ -82,7 +82,10 @@ export default async function Home() {
       <section className="mt-8 grid gap-6 lg:grid-cols-2">
         <Panel title="Recent review activity">
           {dashboard.recentReviewEvents.length === 0 ? (
-            <EmptyPanelText>
+            <EmptyPanelText
+              actionHref="/review"
+              actionLabel="Go to review"
+            >
               Review history will appear here after you grade due cards.
             </EmptyPanelText>
           ) : (
@@ -110,7 +113,10 @@ export default async function Home() {
 
         <Panel title="Upcoming due reviews">
           {dashboard.upcomingDueReviews.length === 0 ? (
-            <EmptyPanelText>
+            <EmptyPanelText
+              actionHref="/vocabulary/new"
+              actionLabel="Add vocabulary"
+            >
               Active review cards will appear here after vocabulary is added.
             </EmptyPanelText>
           ) : (
@@ -142,7 +148,7 @@ export default async function Home() {
       <section className="mt-8">
         <Panel title="Progress by level">
           {dashboard.levelBreakdown.length === 0 ? (
-            <EmptyPanelText>
+            <EmptyPanelText actionHref="/vocabulary" actionLabel="View words">
               Level counts will appear after active vocabulary is assigned to a
               level.
             </EmptyPanelText>
@@ -205,8 +211,28 @@ function Panel({
   );
 }
 
-function EmptyPanelText({ children }: { children: React.ReactNode }) {
-  return <p className="text-slate-600">{children}</p>;
+function EmptyPanelText({
+  children,
+  actionHref,
+  actionLabel,
+}: {
+  children: React.ReactNode;
+  actionHref?: string;
+  actionLabel?: string;
+}) {
+  return (
+    <div>
+      <p className="text-slate-600">{children}</p>
+      {actionHref && actionLabel ? (
+        <Link
+          href={actionHref}
+          className="mt-4 inline-flex rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          {actionLabel}
+        </Link>
+      ) : null}
+    </div>
+  );
 }
 
 function formatDateTime(date: Date) {

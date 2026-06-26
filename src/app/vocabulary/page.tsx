@@ -49,7 +49,7 @@ export default async function VocabularyPage({
   });
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-6 py-10">
       <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-medium uppercase tracking-wide text-red-700">
@@ -58,6 +58,9 @@ export default async function VocabularyPage({
           <h1 className="mt-2 text-3xl font-semibold text-slate-950">
             Saved words
           </h1>
+          <p className="mt-2 text-slate-600">
+            Search active vocabulary and open details for review state.
+          </p>
         </div>
         <Link
           href="/vocabulary/new"
@@ -118,10 +121,27 @@ export default async function VocabularyPage({
               ? "Try a different search or level filter."
               : "Add your first word to create its initial review card."}
           </p>
+          <div className="mt-5">
+            {query || levelId ? (
+              <Link
+                href="/vocabulary"
+                className="inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Clear filters
+              </Link>
+            ) : (
+              <Link
+                href="/vocabulary/new"
+                className="inline-flex rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
+              >
+                Add vocabulary
+              </Link>
+            )}
+          </div>
         </section>
       ) : (
-        <div className="mt-8 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
-          <table className="w-full border-collapse text-left text-sm">
+        <div className="mt-8 overflow-x-auto rounded-md border border-slate-200 bg-white shadow-sm">
+          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
             <thead className="bg-slate-100 text-slate-700">
               <tr>
                 <th className="px-4 py-3 font-semibold">Hanzi</th>

@@ -110,7 +110,7 @@ export function VocabularyCreateForm({
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+          className="w-full rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
         >
           {isPending
             ? "Saving..."
