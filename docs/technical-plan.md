@@ -176,7 +176,7 @@ Use PostgreSQL locally through Docker Compose.
 Expected local environment:
 
 ```text
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/chinese_learning_companion?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/chinese_learning_companion?schema=public"
 ```
 
 Prisma responsibilities:

@@ -2,7 +2,7 @@
 
 A focused Mandarin vocabulary study app with vocabulary management, level organization, spaced repetition reviews, review history, and a database-backed learning dashboard.
 
-The current MVP is built for local portfolio demo use. It does not include auth, quiz mode, AI features, or production deployment yet.
+The current MVP is ready for a portfolio deployment with a hosted PostgreSQL database. It does not include auth, quiz mode, or AI features yet.
 
 ## Features
 
@@ -75,6 +75,33 @@ npx prisma validate
 git diff --check
 ```
 
+## Production Deployment Notes
+
+Recommended portfolio deployment shape:
+
+- Host the Next.js app on a platform that supports Next.js App Router.
+- Use a hosted PostgreSQL database.
+- Set `DATABASE_URL` in the hosting provider's environment variables.
+- Do not commit real production database URLs or secrets.
+- Run Prisma migrations with `npm run db:deploy` during release or from a trusted deployment shell.
+- Seed only safe level labels with `npm run db:seed` if the production database starts empty.
+
+Useful production commands:
+
+```powershell
+npm run db:generate
+npm run db:deploy
+npm run build
+```
+
+Production environment variables:
+
+```text
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public"
+```
+
+The Docker Compose database on port `5433` is for local development only.
+
 ## Demo Flow
 
 1. Open the dashboard.
@@ -85,9 +112,10 @@ git diff --check
 6. Return to the dashboard and confirm recent review activity updates.
 7. Archive a vocabulary item and confirm it no longer appears in active review flows.
 
+See [docs/manual-smoke-test.md](docs/manual-smoke-test.md) for a fuller smoke test checklist.
+
 ## Not Implemented Yet
 
 - Authentication.
 - Quiz mode.
 - AI-generated examples or mnemonics.
-- Production deployment.
