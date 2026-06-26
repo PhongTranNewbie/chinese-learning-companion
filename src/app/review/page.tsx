@@ -82,10 +82,10 @@ export default async function ReviewPage() {
                     {card.vocabularyItem.hanzi}
                   </h2>
                   <p className="mt-2 text-lg text-slate-700">
-                    {card.vocabularyItem.pinyin} · {card.vocabularyItem.meaning}
+                    {card.vocabularyItem.pinyin} / {card.vocabularyItem.meaning}
                   </p>
                   <p className="mt-3 text-sm text-slate-500">
-                    Due {formatDateTime(card.dueAt)} · Reviewed{" "}
+                    Due {formatDateTime(card.dueAt)} / Reviewed{" "}
                     {card.reviewCount} time{card.reviewCount === 1 ? "" : "s"}
                   </p>
                 </div>
