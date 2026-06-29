@@ -12,10 +12,45 @@ model User {
   name            String?
   vocabularyItems VocabularyItem[]
   decks           Deck[]
+  courses         Course[]
   reviewSessions  ReviewSession[]
   quizSessions    QuizSession[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  title       String
+  description String?
+  isArchived  Boolean  @default(false)
+  lessons     Lesson[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isArchived])
+  @@unique([userId, title])
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  deckId      String?
+  deck        Deck?    @relation(fields: [deckId], references: [id])
+  title       String
+  description String?
+  sortOrder   Int      @default(0)
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([courseId, sortOrder])
+  @@index([deckId])
+  @@index([isArchived])
 }
 
 model Deck {
@@ -25,6 +60,7 @@ model Deck {
   name            String
   description     String?
   isArchived      Boolean          @default(false)
+  lessons         Lesson[]
   vocabularyItems VocabularyItem[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
