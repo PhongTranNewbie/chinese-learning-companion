@@ -10,6 +10,7 @@ const reviewGrades = ["AGAIN", "HARD", "GOOD", "EASY"] as const;
 export async function submitReview(formData: FormData) {
   const reviewCardId = readString(formData, "reviewCardId");
   const grade = readString(formData, "grade");
+  const deckId = readString(formData, "deckId");
 
   if (!reviewCardId || !isReviewGrade(grade)) {
     return;
@@ -74,6 +75,10 @@ export async function submitReview(formData: FormData) {
   });
 
   revalidatePath("/review");
+  if (deckId) {
+    revalidatePath(`/decks/${deckId}/study`);
+    revalidatePath(`/decks/${deckId}`);
+  }
 }
 
 function readString(formData: FormData, field: string) {
