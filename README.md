@@ -1,17 +1,26 @@
 # Chinese Learning Companion
 
-A focused Mandarin vocabulary study app with vocabulary management, level organization, spaced repetition reviews, review history, and a database-backed learning dashboard.
+A focused Mandarin vocabulary study app with vocabulary management, decks, CSV import/export, spaced repetition reviews, review history, deck study mode, and a database-backed learning dashboard.
 
 The current MVP is ready for a portfolio deployment with a hosted PostgreSQL database. It does not include auth, quiz mode, or AI features yet.
 
 ## Features
 
 - Create, edit, search, filter, and archive vocabulary items.
+- Organize vocabulary into decks/study sets.
 - Organize vocabulary by seeded HSK level labels.
+- Import vocabulary from CSV and export active vocabulary back to CSV.
 - Automatically create one review card for each vocabulary item.
 - Review due cards with `AGAIN`, `HARD`, `GOOD`, and `EASY` grades.
 - Persist review history with `ReviewEvent` records.
+- Study one deck at a time with a simple flashcard reveal flow.
 - Show a dashboard with active vocabulary, due reviews, reviews completed today, archived count, recent review activity, upcoming reviews, and level breakdown.
+
+## Project Docs
+
+- [Architecture](docs/architecture.md): app structure, routes, Prisma models, server actions, and data access.
+- [Feature walkthrough](docs/feature-walkthrough.md): how vocabulary creation, reviews, CSV import/export, decks, deck study, and dashboard stats work.
+- [Manual smoke test](docs/manual-smoke-test.md): local checklist for verifying the main flows.
 
 ## Tech Stack
 
@@ -62,6 +71,7 @@ Open:
 
 - Dashboard: `http://localhost:3000`
 - Vocabulary: `http://localhost:3000/vocabulary`
+- Decks: `http://localhost:3000/decks`
 - Review: `http://localhost:3000/review`
 
 ## Verification Commands
@@ -108,9 +118,11 @@ The Docker Compose database on port `5433` is for local development only.
 2. Add a vocabulary item.
 3. Confirm it appears in the active vocabulary list.
 4. Open the detail page and inspect its review card.
-5. Review a due card.
-6. Return to the dashboard and confirm recent review activity updates.
-7. Archive a vocabulary item and confirm it no longer appears in active review flows.
+5. Create a deck and assign vocabulary to it.
+6. Study the deck and reveal a card.
+7. Review a due card.
+8. Return to the dashboard and confirm recent review activity updates.
+9. Archive a vocabulary item and confirm it no longer appears in active review flows.
 
 See [docs/manual-smoke-test.md](docs/manual-smoke-test.md) for a fuller smoke test checklist.
 
