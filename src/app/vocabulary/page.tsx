@@ -8,24 +8,37 @@ type VocabularyPageProps = {
   searchParams: Promise<{
     q?: string;
     levelId?: string;
+    deckId?: string;
   }>;
 };
 
 export default async function VocabularyPage({
   searchParams,
 }: VocabularyPageProps) {
-  const levels = await prisma.level.findMany({
-    orderBy: {
-      sortOrder: "asc",
-    },
-  });
+  const [levels, decks] = await Promise.all([
+    prisma.level.findMany({
+      orderBy: {
+        sortOrder: "asc",
+      },
+    }),
+    prisma.deck.findMany({
+      where: {
+        isArchived: false,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    }),
+  ]);
   const params = await searchParams;
   const query = params.q?.trim() ?? "";
   const levelId = params.levelId?.trim() ?? "";
+  const deckId = params.deckId?.trim() ?? "";
 
   const where: Prisma.VocabularyItemWhereInput = {
     isArchived: false,
     ...(levelId ? { levelId } : {}),
+    ...(deckId ? { deckId } : {}),
     ...(query
       ? {
           OR: [
@@ -40,6 +53,7 @@ export default async function VocabularyPage({
   const vocabularyItems = await prisma.vocabularyItem.findMany({
     where,
     include: {
+      deck: true,
       level: true,
       reviewCard: true,
     },
@@ -59,18 +73,32 @@ export default async function VocabularyPage({
             Saved words
           </h1>
           <p className="mt-2 text-slate-600">
-            Search active vocabulary and open details for review state.
+            Search active vocabulary, filter by deck or level, and export CSV.
           </p>
         </div>
-        <Link
-          href="/vocabulary/new"
-          className="inline-flex items-center justify-center rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
-        >
-          Add vocabulary
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/vocabulary/import"
+            className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Import CSV
+          </Link>
+          <Link
+            href={`/api/vocabulary/export${deckId ? `?deckId=${deckId}` : ""}`}
+            className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Export CSV
+          </Link>
+          <Link
+            href="/vocabulary/new"
+            className="inline-flex items-center justify-center rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
+          >
+            Add vocabulary
+          </Link>
+        </div>
       </div>
 
-      <form className="mt-6 grid gap-4 rounded-md border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_220px_auto]">
+      <form className="mt-6 grid gap-4 rounded-md border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_200px_200px_auto]">
         <label className="space-y-2">
           <span className="text-sm font-medium text-slate-700">Search</span>
           <input
@@ -79,6 +107,21 @@ export default async function VocabularyPage({
             placeholder="Hanzi, pinyin, or meaning"
             className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-red-600 focus:ring-2 focus:ring-red-100"
           />
+        </label>
+        <label className="space-y-2">
+          <span className="text-sm font-medium text-slate-700">Deck</span>
+          <select
+            name="deckId"
+            defaultValue={deckId}
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-red-600 focus:ring-2 focus:ring-red-100"
+          >
+            <option value="">All active decks</option>
+            {decks.map((deck) => (
+              <option key={deck.id} value={deck.id}>
+                {deck.name}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="space-y-2">
           <span className="text-sm font-medium text-slate-700">Level</span>
@@ -114,15 +157,17 @@ export default async function VocabularyPage({
       {vocabularyItems.length === 0 ? (
         <section className="mt-10 rounded-md border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
           <h2 className="text-lg font-semibold text-slate-950">
-            {query || levelId ? "No matching vocabulary" : "No vocabulary yet"}
+            {query || levelId || deckId
+              ? "No matching vocabulary"
+              : "No vocabulary yet"}
           </h2>
           <p className="mt-2 text-slate-600">
-            {query || levelId
+            {query || levelId || deckId
               ? "Try a different search or level filter."
               : "Add your first word to create its initial review card."}
           </p>
           <div className="mt-5">
-            {query || levelId ? (
+            {query || levelId || deckId ? (
               <Link
                 href="/vocabulary"
                 className="inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -141,12 +186,13 @@ export default async function VocabularyPage({
         </section>
       ) : (
         <div className="mt-8 overflow-x-auto rounded-md border border-slate-200 bg-white shadow-sm">
-          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[860px] border-collapse text-left text-sm">
             <thead className="bg-slate-100 text-slate-700">
               <tr>
                 <th className="px-4 py-3 font-semibold">Hanzi</th>
                 <th className="px-4 py-3 font-semibold">Pinyin</th>
                 <th className="px-4 py-3 font-semibold">Meaning</th>
+                <th className="px-4 py-3 font-semibold">Deck</th>
                 <th className="px-4 py-3 font-semibold">Level</th>
                 <th className="px-4 py-3 font-semibold">Due</th>
                 <th className="px-4 py-3 font-semibold">Details</th>
@@ -160,6 +206,9 @@ export default async function VocabularyPage({
                   </td>
                   <td className="px-4 py-3 text-slate-700">{item.pinyin}</td>
                   <td className="px-4 py-3 text-slate-700">{item.meaning}</td>
+                  <td className="px-4 py-3 text-slate-700">
+                    {item.deck?.name ?? "None"}
+                  </td>
                   <td className="px-4 py-3 text-slate-700">
                     {item.level?.name ?? "None"}
                   </td>

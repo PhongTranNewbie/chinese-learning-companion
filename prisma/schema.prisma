@@ -11,10 +11,27 @@ model User {
   email           String?          @unique
   name            String?
   vocabularyItems VocabularyItem[]
+  decks           Deck[]
   reviewSessions  ReviewSession[]
   quizSessions    QuizSession[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+}
+
+model Deck {
+  id              String           @id @default(cuid())
+  userId          String?
+  user            User?            @relation(fields: [userId], references: [id])
+  name            String
+  description     String?
+  isArchived      Boolean          @default(false)
+  vocabularyItems VocabularyItem[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([isArchived])
+  @@unique([userId, name])
 }
 
 model Level {
@@ -30,6 +47,8 @@ model VocabularyItem {
   id             String          @id @default(cuid())
   userId         String?
   user           User?           @relation(fields: [userId], references: [id])
+  deckId         String?
+  deck           Deck?           @relation(fields: [deckId], references: [id])
   levelId        String?
   level          Level?          @relation(fields: [levelId], references: [id])
   hanzi          String
@@ -49,6 +68,7 @@ model VocabularyItem {
   updatedAt      DateTime        @updatedAt
 
   @@index([userId])
+  @@index([deckId])
   @@index([levelId])
   @@index([hanzi])
 }

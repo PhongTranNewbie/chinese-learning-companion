@@ -4,12 +4,31 @@ import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewVocabularyPage() {
-  const levels = await prisma.level.findMany({
-    orderBy: {
-      sortOrder: "asc",
-    },
-  });
+type NewVocabularyPageProps = {
+  searchParams: Promise<{
+    deckId?: string;
+  }>;
+};
+
+export default async function NewVocabularyPage({
+  searchParams,
+}: NewVocabularyPageProps) {
+  const params = await searchParams;
+  const [levels, decks] = await Promise.all([
+    prisma.level.findMany({
+      orderBy: {
+        sortOrder: "asc",
+      },
+    }),
+    prisma.deck.findMany({
+      where: {
+        isArchived: false,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    }),
+  ]);
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
@@ -26,7 +45,11 @@ export default async function NewVocabularyPage() {
       </div>
 
       <section className="mt-8 rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <VocabularyCreateForm levels={levels} />
+        <VocabularyCreateForm
+          levels={levels}
+          decks={decks}
+          defaultDeckId={params.deckId}
+        />
       </section>
     </main>
   );

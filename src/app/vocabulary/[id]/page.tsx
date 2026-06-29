@@ -20,6 +20,7 @@ export default async function VocabularyDetailPage({
       id,
     },
     include: {
+      deck: true,
       level: true,
       reviewCard: true,
     },
@@ -69,6 +70,7 @@ export default async function VocabularyDetailPage({
       </div>
 
       <section className="mt-8 grid gap-4 md:grid-cols-2">
+        <InfoBlock label="Deck" value={vocabularyItem.deck?.name ?? "None"} />
         <InfoBlock label="Level" value={vocabularyItem.level?.name ?? "None"} />
         <InfoBlock
           label="Part of speech"

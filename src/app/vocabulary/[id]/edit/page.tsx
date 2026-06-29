@@ -15,7 +15,7 @@ export default async function EditVocabularyPage({
   params,
 }: EditVocabularyPageProps) {
   const { id } = await params;
-  const [vocabularyItem, levels] = await Promise.all([
+  const [vocabularyItem, levels, decks] = await Promise.all([
     prisma.vocabularyItem.findUnique({
       where: {
         id,
@@ -24,6 +24,14 @@ export default async function EditVocabularyPage({
     prisma.level.findMany({
       orderBy: {
         sortOrder: "asc",
+      },
+    }),
+    prisma.deck.findMany({
+      where: {
+        isArchived: false,
+      },
+      orderBy: {
+        name: "asc",
       },
     }),
   ]);
@@ -52,6 +60,7 @@ export default async function EditVocabularyPage({
       <section className="mt-8 rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <VocabularyCreateForm
           levels={levels}
+          decks={decks}
           vocabularyItem={vocabularyItem}
         />
       </section>

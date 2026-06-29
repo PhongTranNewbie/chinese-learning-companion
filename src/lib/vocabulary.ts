@@ -9,6 +9,7 @@ export type CreateVocabularyState = {
 };
 
 const optionalFields = [
+  "deckId",
   "levelId",
   "partOfSpeech",
   "measureWord",
@@ -71,6 +72,7 @@ export async function createVocabularyItem(
         hanzi,
         pinyin,
         meaning,
+        deckId: optionalValues.deckId,
         levelId: optionalValues.levelId,
         partOfSpeech: optionalValues.partOfSpeech,
         measureWord: optionalValues.measureWord,
@@ -130,6 +132,7 @@ export async function updateVocabularyItem(
       hanzi,
       pinyin,
       meaning,
+      deckId: optionalValues.deckId,
       levelId: optionalValues.levelId,
       partOfSpeech: optionalValues.partOfSpeech,
       measureWord: optionalValues.measureWord,
