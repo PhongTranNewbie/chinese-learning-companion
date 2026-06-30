@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { shouldShowDeckStudyActions } from "@/lib/archive-rules";
 import { archiveCourse, archiveLesson } from "@/lib/courses";
 import { prisma } from "@/lib/db";
 
@@ -121,7 +122,7 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
         <section className="mt-8 space-y-4">
           {course.lessons.map((lesson, index) => {
             const deck = lesson.deck;
-            const activeDeck = deck && !deck.isArchived ? deck : null;
+            const activeDeck = shouldShowDeckStudyActions(deck) ? deck : null;
             const vocabularyCount = activeDeck?.vocabularyItems.length ?? 0;
             const dueCount =
               activeDeck?.vocabularyItems.filter(

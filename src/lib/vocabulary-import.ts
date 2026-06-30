@@ -3,20 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { parseCsv } from "@/lib/csv";
 import { prisma } from "@/lib/db";
-
-const allowedHeaders = [
-  "hanzi",
-  "pinyin",
-  "meaning",
-  "level",
-  "deck",
-  "partOfSpeech",
-  "measureWord",
-  "exampleChinese",
-  "examplePinyin",
-  "exampleEnglish",
-  "notes",
-] as const;
+import { validateVocabularyImportRows } from "@/lib/vocabulary-import-validation";
 
 export type ImportState = {
   created?: number;
@@ -42,33 +29,7 @@ export async function importVocabularyCsv(
     return { errors: ["CSV file has no data rows."] };
   }
 
-  const errors: string[] = [];
-  const validRows = rows.map((row, index) => {
-    const rowNumber = index + 2;
-    const unknownHeaders = Object.keys(row).filter(
-      (header) => !allowedHeaders.includes(header as (typeof allowedHeaders)[number]),
-    );
-
-    if (unknownHeaders.length > 0) {
-      errors.push(
-        `Row ${rowNumber}: unknown column(s): ${unknownHeaders.join(", ")}.`,
-      );
-    }
-
-    if (!row.hanzi?.trim()) {
-      errors.push(`Row ${rowNumber}: hanzi is required.`);
-    }
-
-    if (!row.pinyin?.trim()) {
-      errors.push(`Row ${rowNumber}: pinyin is required.`);
-    }
-
-    if (!row.meaning?.trim()) {
-      errors.push(`Row ${rowNumber}: meaning is required.`);
-    }
-
-    return { row, rowNumber };
-  });
+  const { errors, validRows } = validateVocabularyImportRows(rows);
 
   if (errors.length > 0) {
     return { errors };
@@ -77,9 +38,16 @@ export async function importVocabularyCsv(
   let created = 0;
   let skipped = 0;
   const now = new Date();
+  const seenRows = new Set<string>();
 
   await prisma.$transaction(async (tx) => {
-    for (const { row } of validRows) {
+    for (const { row, duplicateKey } of validRows) {
+      if (seenRows.has(duplicateKey)) {
+        skipped += 1;
+        continue;
+      }
+      seenRows.add(duplicateKey);
+
       const deckId = row.deck?.trim()
         ? await getOrCreateDeckId(tx, row.deck.trim())
         : defaultDeckId;

@@ -4,13 +4,30 @@ import { parseCsv, toCsv } from "./csv";
 describe("csv utilities", () => {
   it("parses quoted commas and newlines", () => {
     expect(
-      parseCsv('hanzi,pinyin,meaning,notes\n学习,xue2 xi2,study,"line one, line two"\n'),
+      parseCsv(
+        'hanzi,pinyin,meaning,notes\n\u5b66\u4e60,xue2 xi2,study,"line one, line two"\n',
+      ),
     ).toEqual([
       {
-        hanzi: "学习",
+        hanzi: "\u5b66\u4e60",
         pinyin: "xue2 xi2",
         meaning: "study",
         notes: "line one, line two",
+      },
+    ]);
+  });
+
+  it("parses escaped quotes and CRLF input", () => {
+    expect(
+      parseCsv(
+        'hanzi,pinyin,meaning,notes\r\n\u8bf4,shuo1,speak,"He said ""hello""."\r\n',
+      ),
+    ).toEqual([
+      {
+        hanzi: "\u8bf4",
+        pinyin: "shuo1",
+        meaning: "speak",
+        notes: 'He said "hello".',
       },
     ]);
   });
@@ -19,11 +36,11 @@ describe("csv utilities", () => {
     expect(
       toCsv([
         {
-          hanzi: "学习",
+          hanzi: "\u5b66\u4e60",
           pinyin: "xue2 xi2",
           meaning: "study, learn",
         },
       ]),
-    ).toBe('hanzi,pinyin,meaning\n学习,xue2 xi2,"study, learn"\n');
+    ).toBe('hanzi,pinyin,meaning\n\u5b66\u4e60,xue2 xi2,"study, learn"\n');
   });
 });

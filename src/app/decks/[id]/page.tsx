@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { shouldShowDeckStudyActions } from "@/lib/archive-rules";
 import { archiveDeck } from "@/lib/decks";
 import { prisma } from "@/lib/db";
 
@@ -36,6 +37,7 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
   if (!deck) {
     notFound();
   }
+  const showStudyActions = shouldShowDeckStudyActions(deck);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
@@ -57,24 +59,28 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
           ) : null}
         </div>
         <div className="flex flex-wrap gap-3">
-          <Link
-            href={`/decks/${deck.id}/study`}
-            className="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
-          >
-            Study deck
-          </Link>
-          <Link
-            href={`/vocabulary/new?deckId=${deck.id}`}
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Add vocabulary
-          </Link>
-          <Link
-            href={`/vocabulary/import?deckId=${deck.id}`}
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Import CSV
-          </Link>
+          {showStudyActions ? (
+            <>
+              <Link
+                href={`/decks/${deck.id}/study`}
+                className="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
+              >
+                Study deck
+              </Link>
+              <Link
+                href={`/vocabulary/new?deckId=${deck.id}`}
+                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Add vocabulary
+              </Link>
+              <Link
+                href={`/vocabulary/import?deckId=${deck.id}`}
+                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Import CSV
+              </Link>
+            </>
+          ) : null}
           <Link
             href={`/api/vocabulary/export?deckId=${deck.id}`}
             className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -106,7 +112,9 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
             No active vocabulary in this deck
           </h2>
           <p className="mt-2 text-slate-600">
-            Add or import words to start studying this deck.
+            {deck.isArchived
+              ? "This archived deck has no active vocabulary."
+              : "Add or import words to start studying this deck."}
           </p>
         </section>
       ) : (

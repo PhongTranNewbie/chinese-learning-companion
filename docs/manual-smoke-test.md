@@ -21,7 +21,13 @@ The local PostgreSQL service is published on host port `5433`.
 5. Edit the item and confirm the detail page reflects the changes.
 6. Open `/review`, submit one review grade, and confirm the card updates.
 7. Return to `/` and confirm recent review activity appears.
-8. Archive the vocabulary item and confirm it no longer appears in active list or review flows.
+8. Create a deck, assign vocabulary to it, and confirm `/decks/[id]/study` works.
+9. Import a CSV with a missing `hanzi` or `meaning` value and confirm row-level errors are readable.
+10. Create a course, add lessons, link one lesson to a deck, and confirm the lesson study link opens deck study mode.
+11. Archive a lesson and confirm it disappears from the active lesson list.
+12. Archive a course and confirm it disappears from the active course list.
+13. Archive a deck and confirm active study/import links are hidden.
+14. Archive the vocabulary item and confirm it no longer appears in active list or review flows.
 
 ## Production Checks
 

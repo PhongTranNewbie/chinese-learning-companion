@@ -85,4 +85,37 @@ describe("scheduleReview", () => {
     expect(lowEase.easeFactor).toBe(1.3);
     expect(highEase.easeFactor).toBe(3);
   });
+
+  it("schedules the second GOOD review three days later", () => {
+    const result = scheduleReview({
+      card: {
+        intervalDays: 1,
+        easeFactor: 2.5,
+        reviewCount: 1,
+        lapseCount: 0,
+      },
+      grade: "GOOD",
+      now,
+    });
+
+    expect(result.intervalDays).toBe(3);
+    expect(result.dueAt).toEqual(new Date("2026-06-29T12:00:00.000Z"));
+    expect(result.reviewCount).toBe(2);
+  });
+
+  it("keeps HARD from scheduling less than one day even from a zero interval", () => {
+    const result = scheduleReview({
+      card: {
+        intervalDays: 0,
+        easeFactor: 2.5,
+        reviewCount: 2,
+        lapseCount: 0,
+      },
+      grade: "HARD",
+      now,
+    });
+
+    expect(result.intervalDays).toBe(1);
+    expect(result.dueAt).toEqual(new Date("2026-06-27T12:00:00.000Z"));
+  });
 });
