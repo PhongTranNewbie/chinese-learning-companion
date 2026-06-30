@@ -41,20 +41,36 @@ Only implemented routes are linked in primary navigation.
 
 ## Data Model
 
-The central models are `VocabularyItem`, `ReviewCard`, `ReviewEvent`, `Deck`, and `Level`.
+The central models are `VocabularyItem`, `ReviewCard`, `ReviewEvent`, `Deck`, `Course`, `Lesson`, and `Level`.
 
 ```mermaid
 erDiagram
   Deck ||--o{ VocabularyItem : contains
+  Course ||--o{ Lesson : contains
+  Deck ||--o{ Lesson : supports
   Level ||--o{ VocabularyItem : labels
   VocabularyItem ||--o| ReviewCard : has
   ReviewCard ||--o{ ReviewEvent : records
   User ||--o{ VocabularyItem : optional_owner
   User ||--o{ Deck : optional_owner
+  User ||--o{ Course : optional_owner
 
   Deck {
     string id
     string name
+    boolean isArchived
+  }
+
+  Course {
+    string id
+    string title
+    boolean isArchived
+  }
+
+  Lesson {
+    string id
+    string title
+    int sortOrder
     boolean isArchived
   }
 
@@ -88,10 +104,12 @@ erDiagram
 Important relationships:
 
 - `VocabularyItem` belongs to zero or one `Deck`.
+- `Course` has many ordered `Lesson` records.
+- `Lesson` can link to zero or one `Deck`.
 - `VocabularyItem` belongs to zero or one `Level`.
 - `VocabularyItem` has zero or one `ReviewCard`, but app flows create exactly one review card for each active study item.
 - `ReviewCard` has many `ReviewEvent` records.
-- `Deck`, `VocabularyItem`, and `ReviewCard` use archive/status fields instead of hard deletes in normal app flows.
+- `Deck`, `Course`, `Lesson`, `VocabularyItem`, and `ReviewCard` use archive/status fields instead of hard deletes in normal app flows.
 - `User`, `ReviewSession`, `QuizSession`, `QuizQuestion`, `Tag`, and `VocabularyTag` exist for future growth, but the current MVP does not expose auth, quiz mode, or tag management.
 
 ## Server Actions and Data Access
@@ -103,6 +121,7 @@ Most writes are implemented as server actions in `src/lib`:
 | `src/lib/db.ts` | Creates the Prisma client with the Prisma PostgreSQL adapter. |
 | `src/lib/vocabulary.ts` | Create, update, and archive vocabulary. Creation also creates a review card. |
 | `src/lib/decks.ts` | Create, update, and archive decks. |
+| `src/lib/courses.ts` | Create, update, and archive courses and lessons. |
 | `src/lib/review.ts` | Submit review grades, create review events, update review cards, and revalidate pages. |
 | `src/lib/vocabulary-import.ts` | Validate CSV rows, resolve levels/decks, skip duplicates, and batch-create vocabulary with review cards. |
 | `src/lib/dashboard.ts` | Reads aggregate counts and activity for the dashboard. |

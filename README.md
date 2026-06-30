@@ -1,6 +1,6 @@
 # Chinese Learning Companion
 
-A focused Mandarin vocabulary study app with vocabulary management, decks, CSV import/export, spaced repetition reviews, review history, deck study mode, and a database-backed learning dashboard.
+A focused Mandarin vocabulary study app with vocabulary management, decks, lightweight courses/lessons, CSV import/export, spaced repetition reviews, review history, deck study mode, and a database-backed learning dashboard.
 
 The current MVP is ready for a portfolio deployment with a hosted PostgreSQL database. It does not include auth, quiz mode, or AI features yet.
 
@@ -8,6 +8,7 @@ The current MVP is ready for a portfolio deployment with a hosted PostgreSQL dat
 
 - Create, edit, search, filter, and archive vocabulary items.
 - Organize vocabulary into decks/study sets.
+- Group decks into lightweight courses and ordered lessons.
 - Organize vocabulary by seeded HSK level labels.
 - Import vocabulary from CSV and export active vocabulary back to CSV.
 - Automatically create one review card for each vocabulary item.
@@ -72,6 +73,7 @@ Open:
 - Dashboard: `http://localhost:3000`
 - Vocabulary: `http://localhost:3000/vocabulary`
 - Decks: `http://localhost:3000/decks`
+- Courses: `http://localhost:3000/courses`
 - Review: `http://localhost:3000/review`
 
 ## Verification Commands
@@ -119,10 +121,11 @@ The Docker Compose database on port `5433` is for local development only.
 3. Confirm it appears in the active vocabulary list.
 4. Open the detail page and inspect its review card.
 5. Create a deck and assign vocabulary to it.
-6. Study the deck and reveal a card.
-7. Review a due card.
-8. Return to the dashboard and confirm recent review activity updates.
-9. Archive a vocabulary item and confirm it no longer appears in active review flows.
+6. Create a course with an ordered lesson linked to that deck.
+7. Study the deck and reveal a card.
+8. Review a due card.
+9. Return to the dashboard and confirm recent review activity updates.
+10. Archive a vocabulary item and confirm it no longer appears in active review flows.
 
 See [docs/manual-smoke-test.md](docs/manual-smoke-test.md) for a fuller smoke test checklist.
 
@@ -131,3 +134,4 @@ See [docs/manual-smoke-test.md](docs/manual-smoke-test.md) for a fuller smoke te
 - Authentication.
 - Quiz mode.
 - AI-generated examples or mnemonics.
+- Rich lesson content, media, enrollment, or course publishing workflows.
