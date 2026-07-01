@@ -56,4 +56,19 @@ describe("vocabulary import validation", () => {
 
     expect(firstDeck).not.toBe(secondDeck);
   });
+
+  it("accepts optional memory note columns", () => {
+    const result = validateVocabularyImportRows([
+      {
+        hanzi: "\u4f60\u597d",
+        pinyin: "ni3 hao3",
+        meaning: "hello",
+        characterBreakdown: "\u4f60 + \u597d",
+        wordFormationNote: "A common greeting formed from two familiar characters.",
+        memoryMnemonic: "Imagine checking that you are good.",
+      },
+    ]);
+
+    expect(result.errors).toEqual([]);
+  });
 });

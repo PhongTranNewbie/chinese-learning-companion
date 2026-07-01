@@ -40,6 +40,9 @@ export async function GET(request: Request) {
       exampleChinese: item.exampleChinese ?? "",
       examplePinyin: item.examplePinyin ?? "",
       exampleEnglish: item.exampleEnglish ?? "",
+      characterBreakdown: item.characterBreakdown ?? "",
+      wordFormationNote: item.wordFormationNote ?? "",
+      memoryMnemonic: item.memoryMnemonic ?? "",
       notes: item.notes ?? "",
     })),
   );

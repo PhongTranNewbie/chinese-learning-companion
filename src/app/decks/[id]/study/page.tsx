@@ -68,6 +68,9 @@ export default async function DeckStudyPage({
       exampleChinese: item.exampleChinese,
       examplePinyin: item.examplePinyin,
       exampleEnglish: item.exampleEnglish,
+      characterBreakdown: item.characterBreakdown,
+      wordFormationNote: item.wordFormationNote,
+      memoryMnemonic: item.memoryMnemonic,
       dueAt: item.reviewCard!.dueAt.toISOString(),
       reviewCount: item.reviewCard!.reviewCount,
     }));

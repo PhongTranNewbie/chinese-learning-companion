@@ -16,6 +16,9 @@ const optionalFields = [
   "exampleChinese",
   "examplePinyin",
   "exampleEnglish",
+  "characterBreakdown",
+  "wordFormationNote",
+  "memoryMnemonic",
   "notes",
 ] as const;
 
@@ -79,6 +82,9 @@ export async function createVocabularyItem(
         exampleChinese: optionalValues.exampleChinese,
         examplePinyin: optionalValues.examplePinyin,
         exampleEnglish: optionalValues.exampleEnglish,
+        characterBreakdown: optionalValues.characterBreakdown,
+        wordFormationNote: optionalValues.wordFormationNote,
+        memoryMnemonic: optionalValues.memoryMnemonic,
         notes: optionalValues.notes,
         reviewCard: {
           create: {
@@ -139,6 +145,9 @@ export async function updateVocabularyItem(
       exampleChinese: optionalValues.exampleChinese,
       examplePinyin: optionalValues.examplePinyin,
       exampleEnglish: optionalValues.exampleEnglish,
+      characterBreakdown: optionalValues.characterBreakdown,
+      wordFormationNote: optionalValues.wordFormationNote,
+      memoryMnemonic: optionalValues.memoryMnemonic,
       notes: optionalValues.notes,
     },
   });

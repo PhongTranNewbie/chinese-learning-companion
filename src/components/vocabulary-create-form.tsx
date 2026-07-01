@@ -115,6 +115,36 @@ export function VocabularyCreateForm({
         />
       </section>
 
+      <section className="space-y-5 rounded-md border border-slate-200 bg-slate-50 p-5">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-950">
+            Hanzi memory notes
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Use these as personal memory aids, not guaranteed historical
+            etymology.
+          </p>
+        </div>
+        <TextareaField
+          label="Character breakdown"
+          name="characterBreakdown"
+          defaultValue={vocabularyItem?.characterBreakdown}
+          rows={3}
+        />
+        <TextareaField
+          label="Word formation note"
+          name="wordFormationNote"
+          defaultValue={vocabularyItem?.wordFormationNote}
+          rows={3}
+        />
+        <TextareaField
+          label="Memory mnemonic"
+          name="memoryMnemonic"
+          defaultValue={vocabularyItem?.memoryMnemonic}
+          rows={3}
+        />
+      </section>
+
       <label className="block space-y-2">
         <span className="text-sm font-medium text-slate-700">Notes</span>
         <textarea
@@ -139,6 +169,30 @@ export function VocabularyCreateForm({
         </button>
       </div>
     </form>
+  );
+}
+
+function TextareaField({
+  label,
+  name,
+  defaultValue,
+  rows = 4,
+}: {
+  label: string;
+  name: string;
+  defaultValue?: string | null;
+  rows?: number;
+}) {
+  return (
+    <label className="block space-y-2">
+      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <textarea
+        name={name}
+        rows={rows}
+        defaultValue={defaultValue ?? ""}
+        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-red-600 focus:ring-2 focus:ring-red-100"
+      />
+    </label>
   );
 }
 

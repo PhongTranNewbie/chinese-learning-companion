@@ -9,6 +9,9 @@ const allowedHeaders = [
   "exampleChinese",
   "examplePinyin",
   "exampleEnglish",
+  "characterBreakdown",
+  "wordFormationNote",
+  "memoryMnemonic",
   "notes",
 ] as const;
 

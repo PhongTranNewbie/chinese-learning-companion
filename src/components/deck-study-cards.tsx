@@ -12,6 +12,9 @@ type StudyCard = {
   exampleChinese: string | null;
   examplePinyin: string | null;
   exampleEnglish: string | null;
+  characterBreakdown: string | null;
+  wordFormationNote: string | null;
+  memoryMnemonic: string | null;
   dueAt: string;
   reviewCount: number;
 };
@@ -96,6 +99,36 @@ export function DeckStudyCards({
                 ) : null}
               </div>
             ) : null}
+            {currentCard.characterBreakdown ||
+            currentCard.wordFormationNote ||
+            currentCard.memoryMnemonic ? (
+              <div className="rounded-md border border-slate-200 bg-white p-4">
+                <p className="text-sm font-semibold text-slate-500">
+                  Hanzi memory notes
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Memory aids, not guaranteed historical etymology.
+                </p>
+                {currentCard.characterBreakdown ? (
+                  <MemoryNote
+                    label="Character breakdown"
+                    value={currentCard.characterBreakdown}
+                  />
+                ) : null}
+                {currentCard.wordFormationNote ? (
+                  <MemoryNote
+                    label="Word formation"
+                    value={currentCard.wordFormationNote}
+                  />
+                ) : null}
+                {currentCard.memoryMnemonic ? (
+                  <MemoryNote
+                    label="Mnemonic"
+                    value={currentCard.memoryMnemonic}
+                  />
+                ) : null}
+              </div>
+            ) : null}
           </div>
         ) : (
           <p className="mt-8 text-slate-600">
@@ -157,5 +190,14 @@ export function DeckStudyCards({
         </div>
       </div>
     </section>
+  );
+}
+
+function MemoryNote({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="mt-3">
+      <p className="text-sm font-medium text-slate-700">{label}</p>
+      <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{value}</p>
+    </div>
   );
 }

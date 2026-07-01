@@ -82,6 +82,9 @@ export async function importVocabularyCsv(
           exampleChinese: normalizeOptional(row.exampleChinese),
           examplePinyin: normalizeOptional(row.examplePinyin),
           exampleEnglish: normalizeOptional(row.exampleEnglish),
+          characterBreakdown: normalizeOptional(row.characterBreakdown),
+          wordFormationNote: normalizeOptional(row.wordFormationNote),
+          memoryMnemonic: normalizeOptional(row.memoryMnemonic),
           notes: normalizeOptional(row.notes),
           reviewCard: {
             create: {

@@ -129,6 +129,10 @@ The Docker Compose database on port `5433` is for local development only.
 
 See [docs/manual-smoke-test.md](docs/manual-smoke-test.md) for a fuller smoke test checklist.
 
+## Sample Topic Packs
+
+`docs/sample-topic-packs.csv` contains a tiny manually authored demo import with topic decks such as Greetings, Numbers, Family, and Daily verbs. Save and import it as **CSV UTF-8** so tone-mark pinyin and Chinese characters stay intact.
+
 ## Not Implemented Yet
 
 - Authentication.

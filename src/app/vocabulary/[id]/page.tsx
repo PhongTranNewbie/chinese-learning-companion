@@ -95,6 +95,30 @@ export default async function VocabularyDetailPage({
       </section>
 
       <section className="mt-8 rounded-md border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-semibold text-slate-950">
+          Hanzi memory notes
+        </h2>
+        <p className="mt-2 text-sm text-slate-600">
+          These notes are memory aids for study, not guaranteed historical
+          etymology.
+        </p>
+        <dl className="mt-5 grid gap-4">
+          <InfoTerm
+            label="Character breakdown"
+            value={vocabularyItem.characterBreakdown ?? "None"}
+          />
+          <InfoTerm
+            label="Word formation note"
+            value={vocabularyItem.wordFormationNote ?? "None"}
+          />
+          <InfoTerm
+            label="Memory mnemonic"
+            value={vocabularyItem.memoryMnemonic ?? "None"}
+          />
+        </dl>
+      </section>
+
+      <section className="mt-8 rounded-md border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-slate-950">Notes</h2>
         <p className="mt-3 whitespace-pre-wrap text-slate-700">
           {vocabularyItem.notes ?? "No notes yet."}
@@ -150,7 +174,7 @@ function InfoTerm({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-sm font-medium text-slate-500">{label}</dt>
-      <dd className="mt-1 text-slate-950">{value}</dd>
+      <dd className="mt-1 whitespace-pre-wrap text-slate-950">{value}</dd>
     </div>
   );
 }

@@ -54,7 +54,8 @@ export function VocabularyImportForm({
       <div className="rounded-md bg-slate-50 p-4 text-sm text-slate-600">
         Required columns: `hanzi`, `pinyin`, `meaning`. Optional columns:
         `level`, `deck`, `partOfSpeech`, `measureWord`, `exampleChinese`,
-        `examplePinyin`, `exampleEnglish`, `notes`.
+        `examplePinyin`, `exampleEnglish`, `characterBreakdown`,
+        `wordFormationNote`, `memoryMnemonic`, `notes`.
       </div>
 
       {state.errors?.length ? (

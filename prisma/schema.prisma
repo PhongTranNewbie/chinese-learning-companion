@@ -95,6 +95,9 @@ model VocabularyItem {
   exampleChinese String?
   examplePinyin  String?
   exampleEnglish String?
+  characterBreakdown String?
+  wordFormationNote  String?
+  memoryMnemonic     String?
   notes          String?
   source         String?
   isArchived     Boolean         @default(false)
