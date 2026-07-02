@@ -66,6 +66,8 @@ describe("vocabulary import validation", () => {
         characterBreakdown: "\u4f60 + \u597d",
         wordFormationNote: "A common greeting formed from two familiar characters.",
         memoryMnemonic: "Imagine checking that you are good.",
+        characterNotes:
+          "\u4f60 | \u4ebb + \u5c14 | person + you-like sound | A person points to you as a memory aid.",
       },
     ]);
 

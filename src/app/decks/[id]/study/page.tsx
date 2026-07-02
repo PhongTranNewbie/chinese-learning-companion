@@ -45,6 +45,11 @@ export default async function DeckStudyPage({
         },
         include: {
           reviewCard: true,
+          characterNotes: {
+            orderBy: {
+              sortOrder: "asc",
+            },
+          },
         },
         orderBy: {
           createdAt: "asc",
@@ -71,6 +76,13 @@ export default async function DeckStudyPage({
       characterBreakdown: item.characterBreakdown,
       wordFormationNote: item.wordFormationNote,
       memoryMnemonic: item.memoryMnemonic,
+      characterNotes: item.characterNotes.map((note) => ({
+        id: note.id,
+        character: note.character,
+        components: note.components,
+        componentMeanings: note.componentMeanings,
+        mnemonicStory: note.mnemonicStory,
+      })),
       dueAt: item.reviewCard!.dueAt.toISOString(),
       reviewCount: item.reviewCard!.reviewCount,
     }));

@@ -23,6 +23,11 @@ export default async function VocabularyDetailPage({
       deck: true,
       level: true,
       reviewCard: true,
+      characterNotes: {
+        orderBy: {
+          sortOrder: "asc",
+        },
+      },
     },
   });
 
@@ -116,6 +121,48 @@ export default async function VocabularyDetailPage({
             value={vocabularyItem.memoryMnemonic ?? "None"}
           />
         </dl>
+      </section>
+
+      <section className="mt-8 rounded-md border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-semibold text-slate-950">
+          Character component stories
+        </h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Component stories are pedagogical mnemonics, not guaranteed historical
+          etymology or true character origins.
+        </p>
+        {vocabularyItem.characterNotes.length === 0 ? (
+          <p className="mt-4 text-slate-600">
+            No character component stories yet.
+          </p>
+        ) : (
+          <div className="mt-5 grid gap-4">
+            {vocabularyItem.characterNotes.map((note) => (
+              <article
+                key={note.id}
+                className="rounded-md border border-slate-200 bg-slate-50 p-4"
+              >
+                <h3 className="text-2xl font-semibold text-slate-950">
+                  {note.character}
+                </h3>
+                <dl className="mt-3 grid gap-3 md:grid-cols-3">
+                  <InfoTerm
+                    label="Components"
+                    value={note.components ?? "None"}
+                  />
+                  <InfoTerm
+                    label="Component meanings"
+                    value={note.componentMeanings ?? "None"}
+                  />
+                  <InfoTerm
+                    label="Memory story"
+                    value={note.mnemonicStory ?? "None"}
+                  />
+                </dl>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="mt-8 rounded-md border border-slate-200 bg-white p-6 shadow-sm">

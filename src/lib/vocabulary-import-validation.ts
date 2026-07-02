@@ -12,6 +12,7 @@ const allowedHeaders = [
   "characterBreakdown",
   "wordFormationNote",
   "memoryMnemonic",
+  "characterNotes",
   "notes",
 ] as const;
 

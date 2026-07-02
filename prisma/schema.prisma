@@ -102,6 +102,7 @@ model VocabularyItem {
   source         String?
   isArchived     Boolean         @default(false)
   reviewCard     ReviewCard?
+  characterNotes VocabularyCharacterNote[]
   tags           VocabularyTag[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -110,6 +111,21 @@ model VocabularyItem {
   @@index([deckId])
   @@index([levelId])
   @@index([hanzi])
+}
+
+model VocabularyCharacterNote {
+  id                String         @id @default(cuid())
+  vocabularyItemId  String
+  vocabularyItem    VocabularyItem @relation(fields: [vocabularyItemId], references: [id], onDelete: Cascade)
+  character         String
+  components        String?
+  componentMeanings String?
+  mnemonicStory     String?
+  sortOrder         Int            @default(0)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([vocabularyItemId, sortOrder])
 }
 
 model Tag {

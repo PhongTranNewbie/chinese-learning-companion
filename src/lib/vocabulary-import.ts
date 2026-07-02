@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { parseCharacterNotesInput } from "@/lib/character-notes";
 import { parseCsv } from "@/lib/csv";
 import { prisma } from "@/lib/db";
 import { validateVocabularyImportRows } from "@/lib/vocabulary-import-validation";
@@ -86,6 +87,9 @@ export async function importVocabularyCsv(
           wordFormationNote: normalizeOptional(row.wordFormationNote),
           memoryMnemonic: normalizeOptional(row.memoryMnemonic),
           notes: normalizeOptional(row.notes),
+          characterNotes: {
+            create: parseCharacterNotesInput(row.characterNotes),
+          },
           reviewCard: {
             create: {
               dueAt: now,

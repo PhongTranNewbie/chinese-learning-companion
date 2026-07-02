@@ -15,6 +15,13 @@ type StudyCard = {
   characterBreakdown: string | null;
   wordFormationNote: string | null;
   memoryMnemonic: string | null;
+  characterNotes: {
+    id: string;
+    character: string;
+    components: string | null;
+    componentMeanings: string | null;
+    mnemonicStory: string | null;
+  }[];
   dueAt: string;
   reviewCount: number;
 };
@@ -127,6 +134,40 @@ export function DeckStudyCards({
                     value={currentCard.memoryMnemonic}
                   />
                 ) : null}
+              </div>
+            ) : null}
+            {currentCard.characterNotes.length > 0 ? (
+              <div className="rounded-md border border-slate-200 bg-white p-4">
+                <p className="text-sm font-semibold text-slate-500">
+                  Character component stories
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Pedagogical mnemonics, not true-origin claims.
+                </p>
+                <div className="mt-3 space-y-3">
+                  {currentCard.characterNotes.map((note) => (
+                    <article key={note.id} className="rounded-md bg-slate-50 p-3">
+                      <p className="text-xl font-semibold text-slate-950">
+                        {note.character}
+                      </p>
+                      {note.components ? (
+                        <MemoryNote label="Components" value={note.components} />
+                      ) : null}
+                      {note.componentMeanings ? (
+                        <MemoryNote
+                          label="Component meanings"
+                          value={note.componentMeanings}
+                        />
+                      ) : null}
+                      {note.mnemonicStory ? (
+                        <MemoryNote
+                          label="Memory story"
+                          value={note.mnemonicStory}
+                        />
+                      ) : null}
+                    </article>
+                  ))}
+                </div>
               </div>
             ) : null}
           </div>

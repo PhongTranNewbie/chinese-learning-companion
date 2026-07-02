@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import type { Deck, Level, VocabularyItem } from "@prisma/client";
+import type { Deck, Level, VocabularyCharacterNote, VocabularyItem } from "@prisma/client";
+import { serializeCharacterNotes } from "@/lib/character-notes";
 import {
   createVocabularyItem,
   type CreateVocabularyState,
@@ -12,7 +13,9 @@ type VocabularyCreateFormProps = {
   levels: Level[];
   decks: Deck[];
   defaultDeckId?: string;
-  vocabularyItem?: VocabularyItem;
+  vocabularyItem?: VocabularyItem & {
+    characterNotes?: VocabularyCharacterNote[];
+  };
 };
 
 const initialState: CreateVocabularyState = {};
@@ -142,6 +145,29 @@ export function VocabularyCreateForm({
           name="memoryMnemonic"
           defaultValue={vocabularyItem?.memoryMnemonic}
           rows={3}
+        />
+      </section>
+
+      <section className="space-y-5 rounded-md border border-slate-200 bg-white p-5">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-950">
+            Character component stories
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            One character per line: character | components | component meanings
+            | mnemonic story. These are pedagogical mnemonics, not true-origin
+            claims.
+          </p>
+        </div>
+        <TextareaField
+          label="Per-character notes"
+          name="characterNotes"
+          defaultValue={
+            vocabularyItem?.characterNotes
+              ? serializeCharacterNotes(vocabularyItem.characterNotes)
+              : ""
+          }
+          rows={5}
         />
       </section>
 

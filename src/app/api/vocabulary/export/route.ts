@@ -1,4 +1,5 @@
 import { toCsv } from "@/lib/csv";
+import { serializeCharacterNotes } from "@/lib/character-notes";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,11 @@ export async function GET(request: Request) {
     include: {
       deck: true,
       level: true,
+      characterNotes: {
+        orderBy: {
+          sortOrder: "asc",
+        },
+      },
     },
     orderBy: {
       createdAt: "desc",
@@ -43,6 +49,7 @@ export async function GET(request: Request) {
       characterBreakdown: item.characterBreakdown ?? "",
       wordFormationNote: item.wordFormationNote ?? "",
       memoryMnemonic: item.memoryMnemonic ?? "",
+      characterNotes: serializeCharacterNotes(item.characterNotes),
       notes: item.notes ?? "",
     })),
   );

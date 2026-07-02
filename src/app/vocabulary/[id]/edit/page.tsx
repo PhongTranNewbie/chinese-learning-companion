@@ -20,6 +20,13 @@ export default async function EditVocabularyPage({
       where: {
         id,
       },
+      include: {
+        characterNotes: {
+          orderBy: {
+            sortOrder: "asc",
+          },
+        },
+      },
     }),
     prisma.level.findMany({
       orderBy: {

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { parseCharacterNotesInput } from "@/lib/character-notes";
 import { prisma } from "@/lib/db";
 
 export type CreateVocabularyState = {
@@ -66,6 +67,9 @@ export async function createVocabularyItem(
   const optionalValues = Object.fromEntries(
     optionalFields.map((field) => [field, readOptionalString(formData, field)]),
   );
+  const characterNotes = parseCharacterNotesInput(
+    readOptionalString(formData, "characterNotes"),
+  );
 
   const now = new Date();
 
@@ -90,6 +94,9 @@ export async function createVocabularyItem(
           create: {
             dueAt: now,
           },
+        },
+        characterNotes: {
+          create: characterNotes,
         },
       },
     });
@@ -129,27 +136,45 @@ export async function updateVocabularyItem(
   const optionalValues = Object.fromEntries(
     optionalFields.map((field) => [field, readOptionalString(formData, field)]),
   );
+  const characterNotes = parseCharacterNotesInput(
+    readOptionalString(formData, "characterNotes"),
+  );
 
-  await prisma.vocabularyItem.update({
-    where: {
-      id: vocabularyItemId,
-    },
-    data: {
-      hanzi,
-      pinyin,
-      meaning,
-      deckId: optionalValues.deckId,
-      levelId: optionalValues.levelId,
-      partOfSpeech: optionalValues.partOfSpeech,
-      measureWord: optionalValues.measureWord,
-      exampleChinese: optionalValues.exampleChinese,
-      examplePinyin: optionalValues.examplePinyin,
-      exampleEnglish: optionalValues.exampleEnglish,
-      characterBreakdown: optionalValues.characterBreakdown,
-      wordFormationNote: optionalValues.wordFormationNote,
-      memoryMnemonic: optionalValues.memoryMnemonic,
-      notes: optionalValues.notes,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.vocabularyItem.update({
+      where: {
+        id: vocabularyItemId,
+      },
+      data: {
+        hanzi,
+        pinyin,
+        meaning,
+        deckId: optionalValues.deckId,
+        levelId: optionalValues.levelId,
+        partOfSpeech: optionalValues.partOfSpeech,
+        measureWord: optionalValues.measureWord,
+        exampleChinese: optionalValues.exampleChinese,
+        examplePinyin: optionalValues.examplePinyin,
+        exampleEnglish: optionalValues.exampleEnglish,
+        characterBreakdown: optionalValues.characterBreakdown,
+        wordFormationNote: optionalValues.wordFormationNote,
+        memoryMnemonic: optionalValues.memoryMnemonic,
+        notes: optionalValues.notes,
+      },
+    });
+    await tx.vocabularyCharacterNote.deleteMany({
+      where: {
+        vocabularyItemId,
+      },
+    });
+    if (characterNotes.length > 0) {
+      await tx.vocabularyCharacterNote.createMany({
+        data: characterNotes.map((note) => ({
+          ...note,
+          vocabularyItemId,
+        })),
+      });
+    }
   });
 
   revalidatePath("/vocabulary");

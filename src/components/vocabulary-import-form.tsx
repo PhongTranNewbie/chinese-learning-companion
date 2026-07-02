@@ -55,7 +55,9 @@ export function VocabularyImportForm({
         Required columns: `hanzi`, `pinyin`, `meaning`. Optional columns:
         `level`, `deck`, `partOfSpeech`, `measureWord`, `exampleChinese`,
         `examplePinyin`, `exampleEnglish`, `characterBreakdown`,
-        `wordFormationNote`, `memoryMnemonic`, `notes`.
+        `wordFormationNote`, `memoryMnemonic`, `characterNotes`, `notes`.
+        Character notes use one line per character: character | components |
+        component meanings | mnemonic story.
       </div>
 
       {state.errors?.length ? (
