@@ -19,6 +19,8 @@ type VocabularyCreateFormProps = {
 };
 
 const initialState: CreateVocabularyState = {};
+const characterNotesExample =
+  "妈 | 女 + 马 | 女 = woman/female; 马 = horse | Memory aid: imagine a woman with a horse to remember mother.";
 
 export function VocabularyCreateForm({
   levels,
@@ -155,8 +157,11 @@ export function VocabularyCreateForm({
           </h2>
           <p className="mt-1 text-sm text-slate-600">
             One character per line: character | components | component meanings
-            | mnemonic story. These are pedagogical mnemonics, not true-origin
-            claims.
+            | memory story. Memory stories are learning aids, not guaranteed
+            historical etymology.
+          </p>
+          <p className="mt-2 rounded-md bg-slate-50 p-3 font-mono text-xs leading-5 text-slate-700">
+            {characterNotesExample}
           </p>
         </div>
         <TextareaField

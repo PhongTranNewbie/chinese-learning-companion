@@ -52,12 +52,22 @@ export function VocabularyImportForm({
       </label>
 
       <div className="rounded-md bg-slate-50 p-4 text-sm text-slate-600">
-        Required columns: `hanzi`, `pinyin`, `meaning`. Optional columns:
-        `level`, `deck`, `partOfSpeech`, `measureWord`, `exampleChinese`,
-        `examplePinyin`, `exampleEnglish`, `characterBreakdown`,
-        `wordFormationNote`, `memoryMnemonic`, `characterNotes`, `notes`.
-        Character notes use one line per character: character | components |
-        component meanings | mnemonic story.
+        <p>
+          Required columns: <code>hanzi</code>, <code>pinyin</code>,{" "}
+          <code>meaning</code>. Optional columns include <code>deck</code>,{" "}
+          <code>level</code>, <code>characterBreakdown</code>,{" "}
+          <code>wordFormationNote</code>, <code>memoryMnemonic</code>, and{" "}
+          <code>characterNotes</code>.
+        </p>
+        <p className="mt-3">
+          Character notes use one line per character: character | components |
+          component meanings | memory story. Memory stories are learning aids,
+          not guaranteed historical etymology.
+        </p>
+        <p className="mt-3 rounded-md bg-white p-3 font-mono text-xs leading-5 text-slate-700">
+          妈 | 女 + 马 | 女 = woman/female; 马 = horse | Memory aid: imagine a
+          woman with a horse to remember mother.
+        </p>
       </div>
 
       {state.errors?.length ? (

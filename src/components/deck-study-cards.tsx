@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { CharacterNotesDisplay } from "@/components/character-notes-display";
 import { submitReview } from "@/lib/review";
 
 type StudyCard = {
@@ -58,9 +59,16 @@ export function DeckStudyCards({
     return null;
   }
 
+  const hasCharacterStories = currentCard.characterNotes.length > 0;
+  const hasWordLevelMemoryNotes = Boolean(
+    currentCard.wordFormationNote ||
+      currentCard.memoryMnemonic ||
+      (!hasCharacterStories && currentCard.characterBreakdown),
+  );
+
   return (
-    <section className="mt-8 rounded-md border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-col gap-3 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
+    <section className="mt-8 rounded-md bg-teal-50/40 p-4 shadow-sm ring-1 ring-teal-100 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-medium text-slate-500">{progressLabel}</p>
         <p className="text-sm text-slate-500">
           Due {new Date(currentCard.dueAt).toLocaleDateString()} / reviewed{" "}
@@ -69,28 +77,28 @@ export function DeckStudyCards({
         </p>
       </div>
 
-      <div className="py-12 text-center">
-        <p className="text-6xl font-semibold text-slate-950">
+      <div className="mt-5 rounded-md bg-white px-4 py-10 text-center shadow-sm ring-1 ring-red-100 sm:px-6 sm:py-12">
+        <p className="mx-auto flex min-h-28 w-full max-w-xs items-center justify-center rounded-md bg-teal-50 px-6 py-8 text-7xl font-semibold leading-none text-teal-700 ring-1 ring-teal-100">
           {currentCard.hanzi}
         </p>
 
         {isRevealed ? (
-          <div className="mx-auto mt-8 max-w-2xl space-y-3 text-left">
-            <p className="text-lg text-slate-700">
-              <span className="font-semibold text-slate-950">Pinyin:</span>{" "}
-              {currentCard.pinyin}
-            </p>
-            <p className="text-lg text-slate-700">
-              <span className="font-semibold text-slate-950">Meaning:</span>{" "}
-              {currentCard.meaning}
-            </p>
+          <div className="mx-auto mt-8 max-w-3xl space-y-5 text-left">
+            <div className="text-center">
+              <p className="text-2xl font-semibold text-slate-950">
+                {currentCard.pinyin}
+              </p>
+              <p className="mt-2 text-xl text-slate-700">
+                {currentCard.meaning}
+              </p>
+            </div>
             {currentCard.exampleChinese ||
             currentCard.examplePinyin ||
             currentCard.exampleEnglish ? (
-              <div className="rounded-md bg-slate-50 p-4">
+              <div className="rounded-md bg-slate-50 p-4 ring-1 ring-slate-100">
                 <p className="text-sm font-semibold text-slate-500">Example</p>
                 {currentCard.exampleChinese ? (
-                  <p className="mt-2 text-slate-950">
+                  <p className="mt-2 text-xl font-semibold text-slate-950">
                     {currentCard.exampleChinese}
                   </p>
                 ) : null}
@@ -106,17 +114,12 @@ export function DeckStudyCards({
                 ) : null}
               </div>
             ) : null}
-            {currentCard.characterBreakdown ||
-            currentCard.wordFormationNote ||
-            currentCard.memoryMnemonic ? (
-              <div className="rounded-md border border-slate-200 bg-white p-4">
-                <p className="text-sm font-semibold text-slate-500">
-                  Hanzi memory notes
+            {hasWordLevelMemoryNotes ? (
+              <div className="rounded-md bg-white p-4 shadow-sm ring-1 ring-slate-100">
+                <p className="text-sm font-semibold text-teal-700">
+                  How to remember this word
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Memory aids, not guaranteed historical etymology.
-                </p>
-                {currentCard.characterBreakdown ? (
+                {!hasCharacterStories && currentCard.characterBreakdown ? (
                   <MemoryNote
                     label="Character breakdown"
                     value={currentCard.characterBreakdown}
@@ -136,40 +139,7 @@ export function DeckStudyCards({
                 ) : null}
               </div>
             ) : null}
-            {currentCard.characterNotes.length > 0 ? (
-              <div className="rounded-md border border-slate-200 bg-white p-4">
-                <p className="text-sm font-semibold text-slate-500">
-                  Character component stories
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Pedagogical mnemonics, not true-origin claims.
-                </p>
-                <div className="mt-3 space-y-3">
-                  {currentCard.characterNotes.map((note) => (
-                    <article key={note.id} className="rounded-md bg-slate-50 p-3">
-                      <p className="text-xl font-semibold text-slate-950">
-                        {note.character}
-                      </p>
-                      {note.components ? (
-                        <MemoryNote label="Components" value={note.components} />
-                      ) : null}
-                      {note.componentMeanings ? (
-                        <MemoryNote
-                          label="Component meanings"
-                          value={note.componentMeanings}
-                        />
-                      ) : null}
-                      {note.mnemonicStory ? (
-                        <MemoryNote
-                          label="Memory story"
-                          value={note.mnemonicStory}
-                        />
-                      ) : null}
-                    </article>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+            <CharacterNotesDisplay notes={currentCard.characterNotes} />
           </div>
         ) : (
           <p className="mt-8 text-slate-600">
@@ -178,7 +148,7 @@ export function DeckStudyCards({
         )}
       </div>
 
-      <div className="flex flex-col gap-4 border-t border-slate-200 pt-5">
+      <div className="mt-5 flex flex-col gap-4">
         {isRevealed ? (
           <div className="grid gap-2 sm:grid-cols-4">
             {Object.entries(gradeLabels).map(([grade, label]) => (
@@ -203,7 +173,7 @@ export function DeckStudyCards({
           <button
             type="button"
             onClick={() => setIsRevealed(true)}
-            className="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
+            className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
           >
             Reveal answer
           </button>
@@ -236,9 +206,11 @@ export function DeckStudyCards({
 
 function MemoryNote({ label, value }: { label: string; value: string }) {
   return (
-    <div className="mt-3">
-      <p className="text-sm font-medium text-slate-700">{label}</p>
-      <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{value}</p>
+    <div className="mt-3 rounded-md bg-teal-50 p-3 ring-1 ring-teal-100">
+      <p className="text-sm font-semibold text-teal-950">{label}</p>
+      <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-teal-900">
+        {value}
+      </p>
     </div>
   );
 }
