@@ -36,6 +36,32 @@ The current app is a single-user portfolio MVP. It includes vocabulary managemen
 - [Manual smoke test](docs/manual-smoke-test.md): local checklist for verifying the main flows.
 - [Portfolio positioning](docs/portfolio-positioning.md): honest resume/demo framing for the current MVP.
 
+## Screenshots
+
+<img src="docs/assets/screenshots/dashboard-desktop.png" alt="Learning dashboard" width="800">
+
+Learning dashboard with review rhythm, active vocabulary, recent practice, and upcoming reviews.
+
+<img src="docs/assets/screenshots/vocabulary-library-desktop.png" alt="Vocabulary library" width="800">
+
+Vocabulary library for browsing, searching, filtering, and managing study words.
+
+<img src="docs/assets/screenshots/vocabulary-detail-memory-desktop.png" alt="Hanzi memory breakdown" width="800">
+
+Vocabulary detail page with character breakdowns and learner-authored memory notes.
+
+<img src="docs/assets/screenshots/review-flow-desktop.png" alt="Review flow" width="800">
+
+Due-card review flow with spaced repetition grading options.
+
+<img src="docs/assets/screenshots/deck-study-after-reveal-desktop.png" alt="Deck study after reveal" width="800">
+
+Deck study mode after revealing the answer, including example and memory content.
+
+<img src="docs/assets/screenshots/courses-list-desktop.png" alt="Courses list" width="800">
+
+Lightweight courses organize decks into ordered study paths.
+
 ## Local Setup
 
 Install dependencies:
@@ -147,6 +173,6 @@ See [docs/manual-smoke-test.md](docs/manual-smoke-test.md) for a fuller checklis
 - Add authentication and per-user query scoping before storing real user data in a public deployment.
 - Add quiz mode as a separate practice flow that does not change spaced repetition scheduling.
 - Add import size guidance, batching, and better progress feedback for larger CSV files.
-- Add screenshots or a short demo GIF after the UI is deployed.
+- Add a short demo GIF or hosted walkthrough after the UI is deployed.
 - Add richer analytics for weak cards, levels, tones, and review consistency.
 - Add optional pronunciation/audio support.
