@@ -30,7 +30,7 @@ export function LessonForm({ courseId, lesson, decks }: LessonFormProps) {
           name="title"
           defaultValue={lesson?.title ?? ""}
           aria-invalid={state.errors?.title ? "true" : "false"}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-red-600 focus:ring-2 focus:ring-red-100"
+          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
         />
         {state.errors?.title ? (
           <p className="text-sm text-red-700">{state.errors.title}</p>
@@ -45,7 +45,7 @@ export function LessonForm({ courseId, lesson, decks }: LessonFormProps) {
           step="1"
           defaultValue={lesson?.sortOrder ?? 0}
           aria-invalid={state.errors?.sortOrder ? "true" : "false"}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-red-600 focus:ring-2 focus:ring-red-100"
+          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
         />
         {state.errors?.sortOrder ? (
           <p className="text-sm text-red-700">{state.errors.sortOrder}</p>
@@ -61,7 +61,7 @@ export function LessonForm({ courseId, lesson, decks }: LessonFormProps) {
         <select
           name="deckId"
           defaultValue={lesson?.deckId ?? ""}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-red-600 focus:ring-2 focus:ring-red-100"
+          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
         >
           <option value="">No linked deck</option>
           {decks.map((deck) => (
@@ -78,7 +78,7 @@ export function LessonForm({ courseId, lesson, decks }: LessonFormProps) {
           name="description"
           rows={4}
           defaultValue={lesson?.description ?? ""}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-red-600 focus:ring-2 focus:ring-red-100"
+          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
         />
       </label>
 
@@ -86,7 +86,7 @@ export function LessonForm({ courseId, lesson, decks }: LessonFormProps) {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
+          className="w-full rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
         >
           {isPending ? "Saving..." : lesson ? "Save lesson" : "Create lesson"}
         </button>

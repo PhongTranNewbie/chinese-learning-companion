@@ -22,7 +22,7 @@ export function CourseForm({ course }: { course?: Course }) {
           name="title"
           defaultValue={course?.title ?? ""}
           aria-invalid={state.errors?.title ? "true" : "false"}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-red-600 focus:ring-2 focus:ring-red-100"
+          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
         />
         {state.errors?.title ? (
           <p className="text-sm text-red-700">{state.errors.title}</p>
@@ -35,7 +35,7 @@ export function CourseForm({ course }: { course?: Course }) {
           name="description"
           rows={4}
           defaultValue={course?.description ?? ""}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-red-600 focus:ring-2 focus:ring-red-100"
+          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
         />
       </label>
 
@@ -43,7 +43,7 @@ export function CourseForm({ course }: { course?: Course }) {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
+          className="w-full rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
         >
           {isPending ? "Saving..." : course ? "Save course" : "Create course"}
         </button>

@@ -53,66 +53,96 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
   if (!course) {
     notFound();
   }
+  const activeLessonCount = course.lessons.length;
+  const linkedDeckCount = course.lessons.filter(
+    (lesson) => lesson.deck && shouldShowDeckStudyActions(lesson.deck),
+  ).length;
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <Link href="/courses" className="text-sm font-medium text-red-700">
-            Back to courses
-          </Link>
-          <h1 className="mt-3 text-3xl font-semibold text-slate-950 sm:text-4xl">
-            {course.title}
-          </h1>
-          <p className="mt-2 max-w-2xl text-slate-600">
-            {course.description ?? "No description yet."}
-          </p>
-          {course.isArchived ? (
-            <p className="mt-3 inline-flex rounded-md bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
-              Archived
-            </p>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap gap-3">
-          {!course.isArchived ? (
-            <Link
-              href={`/courses/${course.id}/lessons/new`}
-              className="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
-            >
-              Add lesson
-            </Link>
-          ) : null}
-          <Link
-            href={`/courses/${course.id}/edit`}
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Edit
-          </Link>
-          {!course.isArchived ? (
-            <form action={archiveCourse.bind(null, course.id)}>
-              <button
-                type="submit"
-                className="rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+    <main className="bg-slate-50">
+      <div className="mx-auto max-w-6xl px-5 py-6 sm:px-6 sm:py-8">
+        <div className="rounded-md bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <Link
+                href="/courses"
+                className="text-sm font-semibold text-teal-700 transition hover:text-teal-800"
               >
-                Archive
-              </button>
-            </form>
-          ) : null}
+                Back to courses
+              </Link>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <h1 className="text-3xl font-semibold text-slate-950 sm:text-4xl">
+                  {course.title}
+                </h1>
+                {course.isArchived ? (
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
+                    Archived
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-2 max-w-2xl text-slate-600">
+                {course.description ??
+                  "A simple learning path made from ordered lessons."}
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <SummaryPill
+                  label={`${activeLessonCount} lesson${
+                    activeLessonCount === 1 ? "" : "s"
+                  }`}
+                  tone="teal"
+                />
+                <SummaryPill
+                  label={`${linkedDeckCount} linked deck${
+                    linkedDeckCount === 1 ? "" : "s"
+                  }`}
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3 lg:justify-end">
+              {!course.isArchived ? (
+                <Link
+                  href={`/courses/${course.id}/lessons/new`}
+                  className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
+                >
+                  Add lesson
+                </Link>
+              ) : null}
+              <Link
+                href={`/courses/${course.id}/edit`}
+                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Edit
+              </Link>
+              {!course.isArchived ? (
+                <form action={archiveCourse.bind(null, course.id)}>
+                  <button
+                    type="submit"
+                    className="rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+                  >
+                    Archive
+                  </button>
+                </form>
+              ) : null}
+            </div>
+          </div>
         </div>
-      </div>
 
       {course.lessons.length === 0 ? (
-        <section className="mt-10 rounded-md border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-          <h2 className="text-lg font-semibold text-slate-950">
+        <section className="mt-8 rounded-md bg-white px-6 py-12 text-center shadow-sm ring-1 ring-slate-100">
+          <p className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-2xl font-semibold text-teal-700 ring-1 ring-teal-100">
+            课
+          </p>
+          <h2 className="mt-5 text-xl font-semibold text-slate-950">
             No active lessons yet
           </h2>
-          <p className="mt-2 text-slate-600">
-            Add a lesson to start shaping this course.
+          <p className="mx-auto mt-2 max-w-md text-slate-600">
+            Add a lesson to start shaping this course into a step-by-step
+            learning path.
           </p>
           {!course.isArchived ? (
             <Link
               href={`/courses/${course.id}/lessons/new`}
-              className="mt-5 inline-flex rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
+              className="mt-5 inline-flex rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
             >
               Add lesson
             </Link>
@@ -134,38 +164,57 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
             return (
               <article
                 key={lesson.id}
-                className="rounded-md border border-slate-200 bg-white p-5 shadow-sm"
+                className="rounded-md bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6"
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">
-                      Lesson {index + 1} / order {lesson.sortOrder}
-                    </p>
-                    <h2 className="mt-1 text-xl font-semibold text-slate-950">
-                      {lesson.title}
-                    </h2>
-                    <p className="mt-2 text-sm text-slate-600">
-                      {lesson.description ?? "No lesson notes yet."}
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-teal-50 text-sm font-semibold text-teal-700 ring-1 ring-teal-100">
+                        {index + 1}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-500">
+                          Lesson step / order {lesson.sortOrder}
+                        </p>
+                        <h2 className="mt-1 text-xl font-semibold text-slate-950">
+                          {lesson.title}
+                        </h2>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">
+                          {lesson.description ?? "No lesson notes yet."}
+                        </p>
+                      </div>
+                    </div>
 
                     {deck ? (
-                      <div className="mt-4 rounded-md bg-slate-50 p-4">
-                        <p className="text-sm font-semibold text-slate-950">
-                          Linked deck: {deck.name}
-                        </p>
+                      <div className="mt-5 rounded-md bg-teal-50/60 p-4 ring-1 ring-teal-100">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-teal-900">
+                              Linked deck
+                            </p>
+                            <p className="mt-1 text-base font-semibold text-slate-950">
+                              {deck.name}
+                            </p>
+                          </div>
+                          {!deck.isArchived ? (
+                            <div className="flex flex-wrap gap-2">
+                              <DeckStat
+                                label={`${vocabularyCount} word${
+                                  vocabularyCount === 1 ? "" : "s"
+                                }`}
+                              />
+                              <DeckStat label={`${dueCount} due now`} />
+                            </div>
+                          ) : null}
+                        </div>
                         {deck.isArchived ? (
-                          <p className="mt-2 text-sm text-slate-600">
+                          <p className="mt-3 text-sm text-slate-600">
                             This deck is archived, so study links are hidden.
                           </p>
-                        ) : (
-                          <p className="mt-2 text-sm text-slate-600">
-                            {vocabularyCount} active word
-                            {vocabularyCount === 1 ? "" : "s"} / {dueCount} due now
-                          </p>
-                        )}
+                        ) : null}
                       </div>
                     ) : (
-                      <div className="mt-4 rounded-md bg-slate-50 p-4">
+                      <div className="mt-5 rounded-md bg-slate-50 p-4 ring-1 ring-slate-100">
                         <p className="text-sm text-slate-600">
                           No deck linked yet.
                         </p>
@@ -178,7 +227,7 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
                       <>
                         <Link
                           href={`/decks/${activeDeck.id}/study`}
-                          className="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
+                          className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
                         >
                           Study
                         </Link>
@@ -199,7 +248,7 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
                     <form action={archiveLesson.bind(null, course.id, lesson.id)}>
                       <button
                         type="submit"
-                        className="rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                        className="rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
                       >
                         Archive
                       </button>
@@ -211,6 +260,34 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
           })}
         </section>
       )}
+      </div>
     </main>
+  );
+}
+
+function SummaryPill({
+  label,
+  tone = "slate",
+}: {
+  label: string;
+  tone?: "slate" | "teal";
+}) {
+  const className =
+    tone === "teal"
+      ? "bg-teal-50 text-teal-700 ring-teal-100"
+      : "bg-slate-50 text-slate-600 ring-slate-100";
+
+  return (
+    <span className={`rounded-full px-3 py-1 text-sm font-medium ring-1 ${className}`}>
+      {label}
+    </span>
+  );
+}
+
+function DeckStat({ label }: { label: string }) {
+  return (
+    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-teal-800 ring-1 ring-teal-100">
+      {label}
+    </span>
   );
 }
