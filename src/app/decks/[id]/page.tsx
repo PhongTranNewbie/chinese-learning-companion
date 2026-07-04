@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EmptyState } from "@/components/empty-state";
 import { shouldShowDeckStudyActions } from "@/lib/archive-rules";
 import { archiveDeck } from "@/lib/decks";
 import { prisma } from "@/lib/db";
@@ -132,19 +133,20 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
         </div>
 
         {deck.vocabularyItems.length === 0 ? (
-          <section className="mt-8 rounded-md bg-white px-6 py-12 text-center shadow-sm ring-1 ring-slate-100">
-            <p className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-2xl font-semibold text-teal-700 ring-1 ring-teal-100">
-              词
-            </p>
-            <h2 className="mt-5 text-xl font-semibold text-slate-950">
-              No active vocabulary in this deck
-            </h2>
-            <p className="mx-auto mt-2 max-w-md text-slate-600">
+          <div className="mt-8">
+            <EmptyState
+              icon="词"
+              title="No active vocabulary in this deck"
+              actionHref={!deck.isArchived ? `/vocabulary/new?deckId=${deck.id}` : undefined}
+              actionLabel={!deck.isArchived ? "Add vocabulary" : undefined}
+              secondaryHref={!deck.isArchived ? `/vocabulary/import?deckId=${deck.id}` : undefined}
+              secondaryLabel={!deck.isArchived ? "Import CSV" : undefined}
+            >
               {deck.isArchived
-                ? "This archived deck has no active vocabulary."
-                : "Add or import words to start studying this deck."}
-            </p>
-          </section>
+                ? "This archived deck has no active vocabulary to study."
+                : "Add or import words to turn this deck into a focused study set."}
+            </EmptyState>
+          </div>
         ) : (
           <div className="mt-8 overflow-x-auto rounded-md bg-white shadow-sm ring-1 ring-slate-100">
             <table className="w-full min-w-[760px] border-collapse text-left text-sm">

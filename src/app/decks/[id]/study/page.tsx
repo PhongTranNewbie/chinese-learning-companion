@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DeckStudyCards } from "@/components/deck-study-cards";
+import { EmptyState } from "@/components/empty-state";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -134,37 +135,20 @@ export default async function DeckStudyPage({
         </div>
 
         {cards.length === 0 ? (
-          <section className="mt-8 rounded-md bg-white px-6 py-12 text-center shadow-sm ring-1 ring-slate-100">
-            <p className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-2xl font-semibold text-teal-700 ring-1 ring-teal-100">
-              学
-            </p>
-            <h2 className="mt-5 text-xl font-semibold text-slate-950">
-              {dueOnly
-                ? "This deck is caught up"
-                : "This deck is ready for words"}
-            </h2>
-            <p className="mx-auto mt-2 max-w-md text-slate-600">
+          <div className="mt-8">
+            <EmptyState
+              icon="学"
+              title={dueOnly ? "This deck is caught up" : "This deck is ready for words"}
+              actionHref={dueOnly ? `/decks/${deck.id}/study` : `/vocabulary/new?deckId=${deck.id}`}
+              actionLabel={dueOnly ? "Study all cards" : "Add vocabulary"}
+              secondaryHref={dueOnly ? `/vocabulary/new?deckId=${deck.id}` : undefined}
+              secondaryLabel={dueOnly ? "Add vocabulary" : undefined}
+            >
               {dueOnly
                 ? "No cards are due right now. Study all cards if you want extra practice, or come back later."
                 : "Add or import vocabulary before starting a focused study session."}
-            </p>
-            <div className="mt-5 flex flex-wrap justify-center gap-3">
-              {dueOnly ? (
-                <Link
-                  href={`/decks/${deck.id}/study`}
-                  className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Study all cards
-                </Link>
-              ) : null}
-              <Link
-                href={`/vocabulary/new?deckId=${deck.id}`}
-                className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
-              >
-                Add vocabulary
-              </Link>
-            </div>
-          </section>
+            </EmptyState>
+          </div>
         ) : (
           <DeckStudyCards
             cards={cards}

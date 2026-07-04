@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
+import { EmptyState } from "@/components/empty-state";
 import { prisma } from "@/lib/db";
 import { formatPinyinForDisplay } from "@/lib/pinyin-display";
 
@@ -168,36 +169,18 @@ export default async function VocabularyPage({
         </form>
 
       {vocabularyItems.length === 0 ? (
-          <section className="mt-8 rounded-md bg-white px-6 py-12 text-center shadow-sm ring-1 ring-slate-100">
-            <p className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-2xl font-semibold text-teal-700 ring-1 ring-teal-100">
-              词
-            </p>
-            <h2 className="mt-5 text-xl font-semibold text-slate-950">
-              {hasFilters ? "No matching vocabulary" : "No vocabulary yet"}
-            </h2>
-            <p className="mx-auto mt-2 max-w-md text-slate-600">
+          <div className="mt-8">
+            <EmptyState
+              icon="词"
+              title={hasFilters ? "No matching vocabulary" : "No vocabulary yet"}
+              actionHref={hasFilters ? "/vocabulary" : "/vocabulary/new"}
+              actionLabel={hasFilters ? "Clear filters" : "Add vocabulary"}
+            >
               {hasFilters
                 ? "Try a different search, deck, or level filter."
                 : "Add your first word to create its initial review card."}
-            </p>
-            <div className="mt-5">
-              {hasFilters ? (
-                <Link
-                  href="/vocabulary"
-                  className="inline-flex rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Clear filters
-                </Link>
-              ) : (
-                <Link
-                  href="/vocabulary/new"
-                  className="inline-flex rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
-                >
-                  Add vocabulary
-                </Link>
-              )}
-            </div>
-          </section>
+            </EmptyState>
+          </div>
       ) : (
           <div className="mt-8 overflow-x-auto rounded-md bg-white shadow-sm ring-1 ring-slate-100">
             <table className="w-full min-w-[820px] border-collapse text-left text-sm">

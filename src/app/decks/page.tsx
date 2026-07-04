@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmptyState } from "@/components/empty-state";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -49,24 +50,17 @@ export default async function DecksPage() {
         </div>
 
         {decks.length === 0 ? (
-          <section className="mt-8 rounded-md bg-white px-6 py-12 text-center shadow-sm ring-1 ring-slate-100">
-            <p className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-2xl font-semibold text-teal-700 ring-1 ring-teal-100">
-              组
-            </p>
-            <h2 className="mt-5 text-xl font-semibold text-slate-950">
-              No active decks yet
-            </h2>
-            <p className="mx-auto mt-2 max-w-md text-slate-600">
+          <div className="mt-8">
+            <EmptyState
+              icon="组"
+              title="No active decks yet"
+              actionHref="/decks/new"
+              actionLabel="Create deck"
+            >
               Create a deck to organize related vocabulary into a focused study
               set.
-            </p>
-            <Link
-              href="/decks/new"
-              className="mt-5 inline-flex rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
-            >
-              Create deck
-            </Link>
-          </section>
+            </EmptyState>
+          </div>
         ) : (
           <section className="mt-8 grid gap-4 md:grid-cols-2">
             {decks.map((deck) => (

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmptyState } from "@/components/empty-state";
 import { getDashboardData } from "@/lib/dashboard";
 import { formatPinyinForDisplay } from "@/lib/pinyin-display";
 
@@ -110,26 +111,17 @@ export default async function Home() {
       </section>
 
       {dashboard.activeVocabularyCount === 0 ? (
-        <section className="mt-8 rounded-md bg-white px-6 py-12 text-center shadow-sm ring-1 ring-slate-100">
-          <p className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-2xl font-semibold text-teal-700 ring-1 ring-teal-100">
-            学
-          </p>
-          <h2 className="mt-5 text-xl font-semibold text-slate-950">
-            No active vocabulary yet
-          </h2>
-          <p className="mx-auto mt-2 max-w-md text-slate-600">
+        <div className="mt-8">
+          <EmptyState
+            icon="学"
+            title="No active vocabulary yet"
+            actionHref="/vocabulary/new"
+            actionLabel="Add vocabulary"
+          >
             Add your first Mandarin word to create its review card and give this
             dashboard something useful to guide.
-          </p>
-          <div className="mt-5">
-            <Link
-              href="/vocabulary/new"
-              className="inline-flex items-center justify-center rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
-            >
-              Add vocabulary
-            </Link>
-          </div>
-        </section>
+          </EmptyState>
+        </div>
       ) : null}
 
       <section className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -333,7 +325,7 @@ function EmptyPanelText({
       {actionHref && actionLabel ? (
         <Link
           href={actionHref}
-          className="mt-4 inline-flex rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          className="mt-4 inline-flex rounded-md border border-teal-200 px-3 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50"
         >
           {actionLabel}
         </Link>
