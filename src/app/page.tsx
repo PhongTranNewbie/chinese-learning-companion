@@ -1,77 +1,130 @@
 import Link from "next/link";
 import { getDashboardData } from "@/lib/dashboard";
+import { formatPinyinForDisplay } from "@/lib/pinyin-display";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const dashboard = await getDashboardData();
+  const hasVocabulary = dashboard.activeVocabularyCount > 0;
+  const hasDueReviews = dashboard.dueReviewCount > 0;
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <section className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-medium uppercase tracking-wide text-red-700">
-            Dashboard
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold text-slate-950 sm:text-4xl">
-            Learning dashboard
-          </h1>
-          <p className="mt-2 max-w-2xl text-slate-600">
-            Track vocabulary, due reviews, and recent study activity from your
-            real learning data.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/review"
-            className="inline-flex items-center justify-center rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
-          >
-            Review due cards
-          </Link>
-          <Link
-            href="/vocabulary/new"
-            className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Add vocabulary
-          </Link>
-          <Link
-            href="/vocabulary"
-            className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            View vocabulary
-          </Link>
+    <main className="bg-slate-50">
+      <div className="mx-auto max-w-6xl px-5 py-6 sm:px-6 sm:py-8">
+      <section className="rounded-md bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
+          <div>
+            <p className="text-sm font-semibold text-teal-700">
+              Learning home
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold text-slate-950 sm:text-4xl">
+              {hasDueReviews
+                ? "Your next review is ready"
+                : hasVocabulary
+                  ? "Keep your Chinese moving"
+                  : "Start your Chinese library"}
+            </h1>
+            <p className="mt-3 max-w-2xl text-slate-600">
+              {hasDueReviews
+                ? `${dashboard.dueReviewCount} card${
+                    dashboard.dueReviewCount === 1 ? " is" : "s are"
+                  } due now. A short review session is the best next step.`
+                : hasVocabulary
+                  ? "No cards are due right now. Browse your vocabulary, study a deck, or add the next word you want to remember."
+                  : "Add your first Mandarin word to create a review card and begin building a study rhythm."}
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              {hasDueReviews ? (
+                <Link
+                  href="/review"
+                  className="inline-flex items-center justify-center rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
+                >
+                  Review due cards
+                </Link>
+              ) : null}
+              <Link
+                href={hasVocabulary ? "/vocabulary" : "/vocabulary/new"}
+                className={`inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold shadow-sm transition ${
+                  hasDueReviews
+                    ? "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                    : "bg-teal-700 text-white hover:bg-teal-800"
+                }`}
+              >
+                {hasVocabulary ? "View vocabulary" : "Add vocabulary"}
+              </Link>
+              <Link
+                href="/vocabulary/new"
+                className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Add word
+              </Link>
+            </div>
+          </div>
+          <div className="rounded-md bg-teal-50 p-5 ring-1 ring-teal-100">
+            <p className="text-sm font-semibold text-teal-800">
+              Today&apos;s rhythm
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <MiniStat
+                label="Due now"
+                value={dashboard.dueReviewCount}
+                tone="teal"
+              />
+              <MiniStat
+                label="Done today"
+                value={dashboard.reviewsCompletedToday}
+              />
+            </div>
+            <p className="mt-4 text-sm leading-6 text-teal-900">
+              {hasDueReviews
+                ? "Review first, then add or study new words if you still have energy."
+                : "You are caught up for now. A little extra study can keep the habit warm."}
+            </p>
+          </div>
         </div>
       </section>
 
       <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard
-          label="Active vocabulary"
+          label="Words you are learning"
           value={dashboard.activeVocabularyCount}
+          helper="Active vocabulary"
+          tone="teal"
         />
-        <SummaryCard label="Due now" value={dashboard.dueReviewCount} />
         <SummaryCard
-          label="Reviewed today"
+          label="Ready to review"
+          value={dashboard.dueReviewCount}
+          helper="Due cards now"
+        />
+        <SummaryCard
+          label="Today&apos;s practice"
           value={dashboard.reviewsCompletedToday}
+          helper="Reviews completed"
         />
         <SummaryCard
-          label="Archived vocabulary"
+          label="Set aside"
           value={dashboard.archivedVocabularyCount}
+          helper="Archived words"
         />
       </section>
 
       {dashboard.activeVocabularyCount === 0 ? (
-        <section className="mt-8 rounded-md border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-          <h2 className="text-lg font-semibold text-slate-950">
+        <section className="mt-8 rounded-md bg-white px-6 py-12 text-center shadow-sm ring-1 ring-slate-100">
+          <p className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-2xl font-semibold text-teal-700 ring-1 ring-teal-100">
+            学
+          </p>
+          <h2 className="mt-5 text-xl font-semibold text-slate-950">
             No active vocabulary yet
           </h2>
-          <p className="mt-2 text-slate-600">
-            Add your first Mandarin word to create its review card and start
-            filling the dashboard.
+          <p className="mx-auto mt-2 max-w-md text-slate-600">
+            Add your first Mandarin word to create its review card and give this
+            dashboard something useful to guide.
           </p>
           <div className="mt-5">
             <Link
               href="/vocabulary/new"
-              className="inline-flex items-center justify-center rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800"
+              className="inline-flex items-center justify-center rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
             >
               Add vocabulary
             </Link>
@@ -80,7 +133,10 @@ export default async function Home() {
       ) : null}
 
       <section className="mt-8 grid gap-6 lg:grid-cols-2">
-        <Panel title="Recent review activity">
+        <Panel
+          title="Recent practice"
+          eyebrow="What you just studied"
+        >
           {dashboard.recentReviewEvents.length === 0 ? (
             <EmptyPanelText
               actionHref="/review"
@@ -94,11 +150,18 @@ export default async function Home() {
                 <li key={event.id} className="py-4 first:pt-0 last:pb-0">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="font-medium text-slate-950">
+                      <p className="text-lg font-semibold text-teal-700">
                         {event.reviewCard.vocabularyItem.hanzi}
                       </p>
                       <p className="mt-1 text-sm text-slate-600">
-                        {event.grade} / next due {formatDateTime(event.nextDueAt)}
+                        {formatPinyinForDisplay(
+                          event.reviewCard.vocabularyItem.pinyin,
+                        )}{" "}
+                        / {event.reviewCard.vocabularyItem.meaning}
+                      </p>
+                      <p className="mt-2 text-sm text-slate-500">
+                        Felt {formatReviewGrade(event.grade)} / next review{" "}
+                        {formatDateTime(event.nextDueAt)}
                       </p>
                     </div>
                     <p className="shrink-0 text-sm text-slate-500">
@@ -111,7 +174,7 @@ export default async function Home() {
           )}
         </Panel>
 
-        <Panel title="Upcoming due reviews">
+        <Panel title="Upcoming reviews" eyebrow="What is coming next">
           {dashboard.upcomingDueReviews.length === 0 ? (
             <EmptyPanelText
               actionHref="/vocabulary/new"
@@ -125,12 +188,16 @@ export default async function Home() {
                 <li key={card.id} className="py-4 first:pt-0 last:pb-0">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="font-medium text-slate-950">
+                      <p className="text-lg font-semibold text-teal-700">
                         {card.vocabularyItem.hanzi}
                       </p>
                       <p className="mt-1 text-sm text-slate-600">
-                        {card.vocabularyItem.level?.name ?? "No level"} /{" "}
-                        reviewed {card.reviewCount} time
+                        {formatPinyinForDisplay(card.vocabularyItem.pinyin)} /{" "}
+                        {card.vocabularyItem.meaning}
+                      </p>
+                      <p className="mt-2 text-sm text-slate-500">
+                        {card.vocabularyItem.level?.name ?? "No level"} / studied{" "}
+                        {card.reviewCount} time
                         {card.reviewCount === 1 ? "" : "s"}
                       </p>
                     </div>
@@ -146,7 +213,7 @@ export default async function Home() {
       </section>
 
       <section className="mt-8">
-        <Panel title="Progress by level">
+        <Panel title="Level progress" eyebrow="Where your words live">
           {dashboard.levelBreakdown.length === 0 ? (
             <EmptyPanelText actionHref="/vocabulary" actionLabel="View words">
               Level counts will appear after active vocabulary is assigned to a
@@ -166,7 +233,7 @@ export default async function Home() {
                   </div>
                   <div className="mt-2 h-2 rounded-full bg-slate-100">
                     <div
-                      className="h-2 rounded-full bg-red-700"
+                      className="h-2 rounded-full bg-teal-600"
                       style={{
                         width: `${Math.max(
                           8,
@@ -183,29 +250,69 @@ export default async function Home() {
           )}
         </Panel>
       </section>
+      </div>
     </main>
   );
 }
 
-function SummaryCard({ label, value }: { label: string; value: number }) {
+function MiniStat({
+  label,
+  value,
+  tone = "slate",
+}: {
+  label: string;
+  value: number;
+  tone?: "slate" | "teal";
+}) {
+  const valueClassName = tone === "teal" ? "text-teal-800" : "text-slate-950";
+
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-md bg-white p-4 shadow-sm ring-1 ring-teal-100/70">
       <p className="text-sm font-medium text-slate-500">{label}</p>
-      <p className="mt-3 text-3xl font-semibold text-slate-950">{value}</p>
+      <p className={`mt-2 text-3xl font-semibold ${valueClassName}`}>{value}</p>
+    </div>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  helper,
+  tone = "slate",
+}: {
+  label: string;
+  value: number;
+  helper: string;
+  tone?: "slate" | "teal";
+}) {
+  const valueClassName = tone === "teal" ? "text-teal-700" : "text-slate-950";
+
+  return (
+    <div className="rounded-md bg-white p-5 shadow-sm ring-1 ring-slate-100">
+      <p className="text-sm font-semibold text-slate-700">{label}</p>
+      <p className={`mt-3 text-3xl font-semibold ${valueClassName}`}>{value}</p>
+      <p className="mt-2 text-sm text-slate-500">{helper}</p>
     </div>
   );
 }
 
 function Panel({
+  eyebrow,
   title,
   children,
 }: {
+  eyebrow?: string;
   title: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-semibold text-slate-950">{title}</h2>
+    <section className="rounded-md bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
+      {eyebrow ? (
+        <p className="text-sm font-semibold text-teal-700">{eyebrow}</p>
+      ) : null}
+      <h2 className={eyebrow ? "mt-1 text-xl font-semibold text-slate-950" : "text-xl font-semibold text-slate-950"}>
+        {title}
+      </h2>
       <div className="mt-5">{children}</div>
     </section>
   );
@@ -241,4 +348,15 @@ function formatDateTime(date: Date) {
     timeStyle: "short",
     timeZone: "UTC",
   }).format(date);
+}
+
+function formatReviewGrade(grade: string) {
+  const labels: Record<string, string> = {
+    AGAIN: "still learning",
+    HARD: "hard but remembered",
+    GOOD: "good",
+    EASY: "easy",
+  };
+
+  return labels[grade] ?? grade.toLocaleLowerCase();
 }
