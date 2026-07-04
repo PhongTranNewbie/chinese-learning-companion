@@ -1,5 +1,9 @@
 # Data Model Draft
 
+## Current Status
+
+This is the original planning draft. The implemented Prisma schema now also includes decks, courses, lessons, and character notes. Quiz, tag management, and auth ownership remain future-facing even though some optional models/fields are present for growth.
+
 ## Modeling Goals
 
 The data model should support Chinese-specific vocabulary, review scheduling, review history, quiz attempts, and dashboard metrics without becoming a large curriculum platform.

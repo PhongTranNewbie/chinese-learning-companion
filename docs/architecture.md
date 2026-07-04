@@ -28,7 +28,7 @@ The route files in `src/app` handle page composition and data loading for that p
 | `/vocabulary/new` | Create a vocabulary item and its first review card. |
 | `/vocabulary/[id]` | Vocabulary detail page with review card state. |
 | `/vocabulary/[id]/edit` | Edit vocabulary fields and deck/level assignment. |
-| `/vocabulary/import` | Upload CSV vocabulary and create review cards in batch. |
+| `/vocabulary/import` | Upload a small manually curated CSV vocabulary file and create review cards. |
 | `/decks` | Active deck list. |
 | `/decks/new` | Create a deck. |
 | `/decks/[id]` | Deck detail page with vocabulary in that deck and a study entry point. |
@@ -123,7 +123,7 @@ Most writes are implemented as server actions in `src/lib`:
 | `src/lib/decks.ts` | Create, update, and archive decks. |
 | `src/lib/courses.ts` | Create, update, and archive courses and lessons. |
 | `src/lib/review.ts` | Submit review grades, create review events, update review cards, and revalidate pages. |
-| `src/lib/vocabulary-import.ts` | Validate CSV rows, resolve levels/decks, skip duplicates, and batch-create vocabulary with review cards. |
+| `src/lib/vocabulary-import.ts` | Validate small CSV imports, resolve levels/decks, skip duplicates, and create vocabulary with review cards. |
 | `src/lib/dashboard.ts` | Reads aggregate counts and activity for the dashboard. |
 | `src/lib/csv.ts` | Small CSV parser/exporter used by import and export features. |
 | `src/lib/review-scheduler.ts` | Pure spaced repetition scheduler used by review submission. |
@@ -147,4 +147,4 @@ The database update happens separately in `src/lib/review.ts`, inside a transact
 
 Local development uses Docker Compose PostgreSQL on host port `5433`. The app reads `DATABASE_URL` from the environment and falls back to the documented local connection string in development helpers.
 
-Production deployment should provide a hosted PostgreSQL `DATABASE_URL`, run Prisma migrations with `prisma migrate deploy`, and build the Next.js app with `npm run build`.
+Portfolio deployment should provide a hosted PostgreSQL `DATABASE_URL`, run Prisma migrations with `prisma migrate deploy`, and build the Next.js app with `npm run build`. Add authentication and per-user query scoping before using the app for real public multi-user data.

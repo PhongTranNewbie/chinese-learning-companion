@@ -1,5 +1,9 @@
 # Implementation Roadmap
 
+## Current Status
+
+This roadmap documents the intended build sequence. The current portfolio MVP has completed the vocabulary, spaced repetition, dashboard, decks, courses, CSV import/export, and UI polish work. Quiz mode, AI features, authentication, and pagination/session caps remain future phases.
+
 ## Roadmap Principles
 
 - Build the learning loop before polish.
@@ -257,7 +261,6 @@ Production smoke tests:
 - Create vocabulary.
 - Complete review.
 - View review history.
-- Complete quiz.
 - Confirm dashboard updates.
 
 Suggested commits:

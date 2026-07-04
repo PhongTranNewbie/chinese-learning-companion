@@ -1,5 +1,9 @@
 # Technical Plan
 
+## Current Status
+
+This was the original implementation plan. The current portfolio MVP implements vocabulary, decks, courses/lessons, small manual CSV import/export, spaced repetition reviews, review history, and dashboard metrics. Quiz mode, authentication, and larger-session pagination are future work.
+
 ## Stack
 
 - Framework: Next.js App Router
@@ -16,9 +20,9 @@
 The app should use a conventional full-stack Next.js architecture:
 
 - Server components for data-heavy pages such as dashboard, vocabulary list, and detail pages.
-- Server actions or route handlers for mutations such as creating vocabulary, submitting reviews, and saving quiz results.
+- Server actions or route handlers for mutations such as creating vocabulary, importing/exporting small CSV files, submitting reviews, and managing decks/courses.
 - Prisma as the database access layer.
-- Domain utilities for review scheduling, quiz generation, and dashboard metric aggregation.
+- Domain utilities for review scheduling, CSV parsing, and dashboard metric aggregation.
 - Tailwind for UI styling with a compact learning-tool feel.
 
 Suggested source organization once app code begins:
@@ -28,18 +32,18 @@ app/
   page.tsx
   vocabulary/
   review/
-  quiz/
+  quiz/        # future
   levels/
   settings/
 components/
   vocabulary/
   review/
-  quiz/
+  quiz/        # future
   dashboard/
 lib/
   db.ts
   review-scheduler.ts
-  quiz-generator.ts
+  quiz-generator.ts # future
   dashboard-metrics.ts
   validation.ts
 prisma/
@@ -67,7 +71,7 @@ Outputs:
 - Updated review count.
 - Updated lapse count when recall fails.
 
-### Quiz Generator
+### Future Quiz Generator
 
 Builds short quiz sessions from selected vocabulary.
 
@@ -185,9 +189,9 @@ Prisma responsibilities:
 - Type-safe database access.
 - Seed script for a small sample deck if licensing is clear or manually authored.
 
-## Production Deployment Plan
+## Portfolio Deployment Plan
 
-Recommended deployment:
+Recommended portfolio deployment:
 
 - Vercel for Next.js app.
 - Neon or Supabase for managed PostgreSQL.
@@ -197,18 +201,18 @@ Recommended deployment:
 Production checklist:
 
 - Configure `DATABASE_URL`.
-- Configure `AUTH_SECRET` and provider credentials if Auth.js is used.
 - Run migrations against production database.
-- Seed only safe demo data.
-- Verify dashboard, review flow, quiz flow, and vocabulary CRUD in production.
+- Seed only safe level labels or manually authored demo data.
+- Verify dashboard, review flow, deck study, courses, CSV import/export, and vocabulary CRUD in the deployed app.
 - Add README deployment notes and screenshots.
+
+Do not treat a public deployment as production multi-user software until authentication and per-user query scoping are implemented.
 
 ## Testing and Verification Strategy
 
 Unit tests:
 
 - Review scheduler.
-- Quiz generation.
 - Dashboard metric helpers if isolated.
 
 Integration checks:
@@ -216,7 +220,6 @@ Integration checks:
 - Prisma migration.
 - Vocabulary create/update/delete.
 - Review submission transaction.
-- Quiz session creation and scoring.
 
 Manual smoke tests:
 
@@ -224,7 +227,6 @@ Manual smoke tests:
 - Complete a review session.
 - Confirm due date changes.
 - View review history.
-- Complete a quiz.
 - Confirm dashboard metrics update.
 
 ## Risk List

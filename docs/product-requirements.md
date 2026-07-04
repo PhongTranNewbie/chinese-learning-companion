@@ -1,8 +1,12 @@
 # Product Requirements
 
+## Current Status
+
+This document started as the product plan. The current portfolio MVP implements vocabulary management, decks, lightweight courses/lessons, small manual CSV import/export, spaced repetition reviews, review history, and dashboard metrics. Quiz mode, authentication/per-user ownership, AI features, and pagination/session caps are future improvements.
+
 ## Product Summary
 
-Chinese Learning Companion is a focused Mandarin study app for learners who want to build durable vocabulary knowledge through structured flashcards, HSK or custom levels, spaced repetition, quizzes, and progress visibility.
+Chinese Learning Companion is a focused Mandarin study app for learners who want to build durable vocabulary knowledge through structured flashcards, HSK or custom levels, spaced repetition, deck study, and progress visibility.
 
 The app is not a Duolingo clone. It should feel more like a personal learning workstation: fast to add vocabulary, clear about what needs review today, and honest about long-term retention.
 
@@ -29,8 +33,8 @@ Secondary portfolio audience:
 - Help a learner maintain a vocabulary bank with Chinese-specific fields.
 - Schedule reviews using a transparent spaced repetition algorithm.
 - Show what is due today and how learning progress changes over time.
-- Support quiz sessions that reinforce recognition and recall.
-- Demonstrate full-stack engineering: Next.js App Router, TypeScript, Prisma, PostgreSQL, Docker Compose, Tailwind, and production deployment.
+- Keep room for future quiz sessions that reinforce recognition and recall without changing spaced repetition state.
+- Demonstrate full-stack engineering: Next.js App Router, TypeScript, Prisma, PostgreSQL, Docker Compose, Tailwind, and portfolio deployment documentation.
 
 ## Non-Goals
 
@@ -41,19 +45,20 @@ Secondary portfolio audience:
 - Do not require native mobile apps.
 - Do not attempt complete dictionary coverage.
 
-## MVP Scope
+## Current MVP Scope
 
-The MVP should include:
+The current portfolio MVP includes:
 
 - Vocabulary management with Chinese-specific fields.
 - HSK or level-based organization.
 - Flashcard review queue driven by spaced repetition.
 - Review grading such as Again, Hard, Good, Easy.
 - Review history for each card.
-- Learning dashboard with due count, studied count, accuracy, and recent activity.
-- Quiz mode for lightweight practice outside scheduled reviews.
+- Learning dashboard with due count, active vocabulary, archived count, recent activity, upcoming reviews, and level breakdown.
+- Decks, deck study, lightweight courses, and ordered lessons.
+- Small manually curated CSV import/export.
 - Dockerized local PostgreSQL.
-- Production deployment plan.
+- Portfolio deployment notes.
 
 ## Out of Scope for MVP
 
@@ -66,15 +71,18 @@ The MVP should include:
 - Import from Anki.
 - Full offline mode.
 - Multi-language interface.
+- Authentication and per-user ownership.
+- Quiz mode.
+- Pagination and review-session caps for large libraries.
 
 ## User Stories
 
 - As a learner, I want to add a vocabulary item with hanzi, pinyin, meaning, level, and example sentence so I can study words from my real learning materials.
-- As a learner, I want to tag words by HSK level or custom level so I can focus on the right difficulty range.
+- As a learner, I want to assign words to a level or deck so I can focus on the right difficulty range.
 - As a learner, I want to see which cards are due today so I can start reviewing quickly.
 - As a learner, I want to grade each review so the app can decide when to show the card again.
 - As a learner, I want to inspect a word's review history so I can understand why it is easy or difficult.
-- As a learner, I want quiz mode so I can practice recognition without changing the main review schedule.
+- As a learner, I eventually want quiz mode so I can practice recognition without changing the main review schedule.
 - As a learner, I want a dashboard so I can see my study consistency and retention trends.
 - As a developer portfolio reviewer, I want to see domain-specific scheduling logic, relational modeling, and deployment readiness.
 
@@ -84,7 +92,7 @@ The MVP should include:
 
 1. User opens the vocabulary page.
 2. User clicks add vocabulary.
-3. User enters hanzi, pinyin, meaning, optional part of speech, HSK level, tags, and example sentence.
+3. User enters hanzi, pinyin, meaning, optional part of speech, level, deck, and example sentence.
 4. App validates required fields.
 5. App creates a vocabulary item and initial review state.
 6. Item appears in the vocabulary list and can enter the review queue.
@@ -93,21 +101,19 @@ The MVP should include:
 
 1. User opens the dashboard or review page.
 2. App shows count of cards due now.
-3. User starts a review session.
-4. App presents one card at a time.
-5. User reveals the answer.
-6. User grades recall: Again, Hard, Good, or Easy.
-7. App records review history and updates the next due date, interval, ease factor, and lapse count.
-8. Session summary shows reviewed count, accuracy, and next review estimates.
+3. App lists due cards.
+4. User grades recall: Again, Hard, Good, or Easy.
+5. App records review history and updates the next due date, interval, ease factor, and lapse count.
+6. Dashboard activity reflects the completed review.
 
 ### Browse and Filter Vocabulary
 
 1. User opens vocabulary page.
-2. User filters by HSK level, status, tag, or search text.
+2. User filters by level, deck, or search text.
 3. User opens a vocabulary detail page.
 4. App shows card details, examples, review state, and review history.
 
-### Quiz Mode
+### Future Quiz Mode
 
 1. User opens quiz page.
 2. User chooses mode, such as hanzi to meaning, meaning to hanzi, or pinyin recognition.
@@ -120,7 +126,7 @@ The MVP should include:
 
 1. User opens the app root.
 2. App shows due today, total vocabulary, cards learned, recent reviews, accuracy, and level distribution.
-3. User can jump to review, add vocabulary, vocabulary list, or quiz mode.
+3. User can jump to review, add vocabulary, vocabulary list, decks, or courses.
 
 ## Suggested Pages and Routes
 
@@ -129,14 +135,15 @@ The MVP should include:
 - `/vocabulary/new` - Create vocabulary item.
 - `/vocabulary/[id]` - Vocabulary detail, edit controls, review history.
 - `/review` - Due-card review launcher.
-- `/review/session` - Active review session.
-- `/review/summary` - Session result summary.
-- `/quiz` - Quiz setup.
-- `/quiz/session` - Active quiz session.
-- `/quiz/summary` - Quiz results.
-- `/levels` - HSK or custom level overview.
-- `/settings` - Optional study preferences.
-- `/login` - Only if Auth.js is included.
+- `/vocabulary/import` - Small manual CSV import.
+- `/decks` - Deck list.
+- `/decks/[id]` - Deck detail.
+- `/decks/[id]/study` - Deck study mode.
+- `/courses` - Course list.
+- `/courses/[id]` - Course detail.
+- `/api/vocabulary/export` - Active vocabulary CSV export.
+- Future: `/quiz`, `/quiz/session`, and `/quiz/summary`.
+- Future: `/levels`, `/settings`, and `/login` if those features are added.
 
 ## MVP Success Criteria
 
@@ -144,21 +151,23 @@ The MVP should include:
 - A user can review due cards and produce persistent review history.
 - The app can calculate next due dates from review grades.
 - Dashboard metrics reflect real database state.
-- Quiz mode works without corrupting spaced repetition scheduling.
 - Local setup works with Docker Compose and PostgreSQL.
-- The production deployment path is documented and realistic.
+- The portfolio deployment path is documented and realistic.
 
 ## Product Risks
 
 - The MVP could become too broad if dictionary, AI, and pronunciation features are added too early.
 - Poor review scheduling logic could make the app feel untrustworthy.
-- Quiz mode could blur with review mode unless the distinction is clear.
+- Future quiz mode could blur with review mode unless the distinction is clear.
 - HSK data licensing should be checked before importing external lists.
 - Auth can add complexity; a single-user MVP may be enough if time is limited.
 
 ## Future Improvements
 
-- Bulk import from CSV.
+- Pagination and session caps for large vocabulary/review/deck views.
+- Quiz mode outside scheduled reviews.
+- Authentication and per-user query scoping.
+- Larger CSV import support with batching/progress feedback.
 - Optional AI examples and mnemonic generation after core review flow is stable.
 - Audio pronunciation via a third-party text-to-speech API.
 - Writing practice mode with stroke-order resources.

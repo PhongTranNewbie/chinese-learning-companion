@@ -54,9 +54,11 @@ flowchart TD
 
 The transaction matters because the history row and current card state should stay in sync.
 
-## Importing CSV Creates Vocabulary and Review Cards
+## Importing Small CSV Files Creates Vocabulary and Review Cards
 
 CSV import lives at `/vocabulary/import` and uses `importVocabularyCsv` in `src/lib/vocabulary-import.ts`.
+
+In the current MVP, this flow is intended for small manually curated study lists, not large licensed datasets or high-volume bulk import jobs.
 
 Supported columns:
 
@@ -70,6 +72,10 @@ Supported columns:
 - `exampleChinese`
 - `examplePinyin`
 - `exampleEnglish`
+- `characterBreakdown`
+- `wordFormationNote`
+- `memoryMnemonic`
+- `characterNotes`
 - `notes`
 
 The import flow:
@@ -82,7 +88,7 @@ The import flow:
 6. Skips duplicate active vocabulary when `hanzi + pinyin + meaning` already exists in the same deck.
 7. Creates each new `VocabularyItem` with a related `ReviewCard` due immediately.
 
-The batch insert runs in a transaction so the import can keep vocabulary and review-card creation together.
+The import runs in a transaction so vocabulary creation and review-card creation stay together. It processes rows sequentially, which keeps the implementation simple and demo-friendly for small files.
 
 ## Decks Organize Vocabulary
 
