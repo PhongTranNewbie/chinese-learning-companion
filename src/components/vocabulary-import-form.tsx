@@ -8,6 +8,10 @@ import {
 } from "@/lib/vocabulary-import";
 
 const initialState: ImportState = {};
+const fieldClass =
+  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100";
+const primaryButtonClass =
+  "w-full rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto";
 
 export function VocabularyImportForm({
   decks,
@@ -23,6 +27,14 @@ export function VocabularyImportForm({
 
   return (
     <form action={formAction} className="space-y-6">
+      <section className="space-y-2 rounded-md bg-teal-50/50 p-4 text-sm text-slate-700 ring-1 ring-teal-100">
+        <h2 className="font-semibold text-slate-950">Before you import</h2>
+        <p>
+          Use this for vocabulary you wrote or collected yourself. The importer
+          will create vocabulary items and review cards from valid CSV rows.
+        </p>
+      </section>
+
       <label className="block space-y-2">
         <span className="text-sm font-medium text-slate-700">
           Default deck
@@ -30,7 +42,7 @@ export function VocabularyImportForm({
         <select
           name="deckId"
           defaultValue={defaultDeckId ?? ""}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-red-600 focus:ring-2 focus:ring-red-100"
+          className={fieldClass}
         >
           <option value="">No default deck</option>
           {decks.map((deck) => (
@@ -47,24 +59,32 @@ export function VocabularyImportForm({
           type="file"
           name="csv"
           accept=".csv,text/csv"
-          className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm file:mr-4 file:rounded-md file:border-0 file:bg-slate-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
+          className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm file:mr-4 file:rounded-md file:border-0 file:bg-teal-700 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-teal-800"
         />
       </label>
 
-      <div className="rounded-md bg-slate-50 p-4 text-sm text-slate-600">
-        <p>
-          Required columns: <code>hanzi</code>, <code>pinyin</code>,{" "}
-          <code>meaning</code>. Optional columns include <code>deck</code>,{" "}
-          <code>level</code>, <code>characterBreakdown</code>,{" "}
-          <code>wordFormationNote</code>, <code>memoryMnemonic</code>, and{" "}
-          <code>characterNotes</code>.
-        </p>
-        <p className="mt-3">
-          Character notes use one line per character: character | components |
-          component meanings | memory story. Memory stories are learning aids,
-          not guaranteed historical etymology.
-        </p>
-        <p className="mt-3 rounded-md bg-white p-3 font-mono text-xs leading-5 text-slate-700">
+      <div className="rounded-md bg-slate-50 p-4 text-sm text-slate-600 ring-1 ring-slate-100">
+        <h2 className="font-semibold text-slate-950">CSV format</h2>
+        <ul className="mt-3 space-y-2">
+          <li>
+            Required columns: <code>hanzi</code>, <code>pinyin</code>,{" "}
+            <code>meaning</code>.
+          </li>
+          <li>
+            Optional columns: <code>deck</code>, <code>level</code>,{" "}
+            <code>characterBreakdown</code>, <code>wordFormationNote</code>,{" "}
+            <code>memoryMnemonic</code>, and <code>characterNotes</code>.
+          </li>
+          <li>Save the file as CSV UTF-8 so Hanzi and tone marks stay readable.</li>
+        </ul>
+        <div className="mt-4 rounded-md bg-amber-50/70 p-3 ring-1 ring-amber-100">
+          <p className="text-slate-700">
+            Character notes use one line per character: character | components |
+            component meanings | memory story. Memory stories are learning aids,
+            not guaranteed historical etymology.
+          </p>
+        </div>
+        <p className="mt-3 rounded-md bg-white p-3 font-mono text-xs leading-5 text-slate-700 ring-1 ring-slate-100">
           妈 | 女 + 马 | 女 = woman/female; 马 = horse | Memory aid: imagine a
           woman with a horse to remember mother.
         </p>
@@ -93,7 +113,7 @@ export function VocabularyImportForm({
         <button
           type="submit"
           disabled={isPending}
-          className="w-full rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
+          className={primaryButtonClass}
         >
           {isPending ? "Importing..." : "Import CSV"}
         </button>

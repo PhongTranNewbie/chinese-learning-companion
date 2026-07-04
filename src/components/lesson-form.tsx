@@ -9,6 +9,10 @@ import {
 } from "@/lib/courses";
 
 const initialState: LessonFormState = {};
+const fieldClass =
+  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100";
+const primaryButtonClass =
+  "w-full rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto";
 
 type LessonFormProps = {
   courseId: string;
@@ -24,13 +28,20 @@ export function LessonForm({ courseId, lesson, decks }: LessonFormProps) {
 
   return (
     <form action={formAction} className="space-y-6">
+      <div className="rounded-md bg-teal-50/50 p-4 text-sm text-slate-700 ring-1 ring-teal-100">
+        Lessons are simple steps in a course. Link a deck when this lesson
+        should lead directly into study.
+      </div>
+
       <label className="block space-y-2">
-        <span className="text-sm font-medium text-slate-700">Title *</span>
+        <span className="text-sm font-medium text-slate-700">
+          Title <span className="text-teal-700">*</span>
+        </span>
         <input
           name="title"
           defaultValue={lesson?.title ?? ""}
           aria-invalid={state.errors?.title ? "true" : "false"}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+          className={fieldClass}
         />
         {state.errors?.title ? (
           <p className="text-sm text-red-700">{state.errors.title}</p>
@@ -45,7 +56,7 @@ export function LessonForm({ courseId, lesson, decks }: LessonFormProps) {
           step="1"
           defaultValue={lesson?.sortOrder ?? 0}
           aria-invalid={state.errors?.sortOrder ? "true" : "false"}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+          className={fieldClass}
         />
         {state.errors?.sortOrder ? (
           <p className="text-sm text-red-700">{state.errors.sortOrder}</p>
@@ -61,7 +72,7 @@ export function LessonForm({ courseId, lesson, decks }: LessonFormProps) {
         <select
           name="deckId"
           defaultValue={lesson?.deckId ?? ""}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+          className={fieldClass}
         >
           <option value="">No linked deck</option>
           {decks.map((deck) => (
@@ -78,15 +89,18 @@ export function LessonForm({ courseId, lesson, decks }: LessonFormProps) {
           name="description"
           rows={4}
           defaultValue={lesson?.description ?? ""}
-          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+          className={fieldClass}
         />
+        <p className="text-sm text-slate-500">
+          Add a short note about what the learner should focus on in this step.
+        </p>
       </label>
 
       <div className="flex justify-end border-t border-slate-200 pt-6">
         <button
           type="submit"
           disabled={isPending}
-          className="w-full rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
+          className={primaryButtonClass}
         >
           {isPending ? "Saving..." : lesson ? "Save lesson" : "Create lesson"}
         </button>

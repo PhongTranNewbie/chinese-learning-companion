@@ -52,7 +52,7 @@ export default async function EditVocabularyPage({
       <div className="border-b border-slate-200 pb-6">
         <Link
           href={`/vocabulary/${vocabularyItem.id}`}
-          className="text-sm font-medium text-red-700"
+          className="text-sm font-medium text-teal-700 transition hover:text-teal-800"
         >
           Back to details
         </Link>
@@ -64,7 +64,7 @@ export default async function EditVocabularyPage({
         </p>
       </div>
 
-      <section className="mt-8 rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <section className="mt-8 rounded-md bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
         <VocabularyCreateForm
           levels={levels}
           decks={decks}
