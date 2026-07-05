@@ -54,7 +54,7 @@ export default async function VocabularyDetailPage({
   const primaryStudyHref = vocabularyItem.deck
     ? `/decks/${vocabularyItem.deck.id}/study`
     : "/review";
-  const primaryStudyLabel = vocabularyItem.deck ? "Study this word" : "Review now";
+  const primaryStudyLabel = vocabularyItem.deck ? "Study this deck" : "Review now";
   const practiceHelper = vocabularyItem.deck
     ? "Review this word when it is due, or study it in context with its deck."
     : "Review this word when it is due and keep it moving through your study routine.";
