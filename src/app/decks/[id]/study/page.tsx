@@ -86,13 +86,12 @@ export default async function DeckStudyPage({
         componentMeanings: note.componentMeanings,
         mnemonicStory: note.mnemonicStory,
       })),
-      dueAt: item.reviewCard!.dueAt.toISOString(),
       reviewCount: item.reviewCard!.reviewCount,
     }));
 
   return (
     <main className="bg-slate-50">
-      <div className="mx-auto max-w-5xl px-5 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto max-w-4xl px-5 py-6 sm:px-6 sm:py-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <Link
@@ -106,8 +105,8 @@ export default async function DeckStudyPage({
             </h1>
             <p className="mt-2 max-w-2xl text-slate-600">
               {dueOnly
-                ? "Review the cards in this deck that are ready today."
-                : "Move through this deck at your own pace, then reveal each answer when you are ready."}
+                ? "Move through the due cards in this deck one calm recall at a time."
+                : "Study this deck at your own pace. Recall first, then reveal the answer."}
             </p>
           </div>
           <div className="flex rounded-md bg-white p-1 shadow-sm ring-1 ring-slate-200">
@@ -138,15 +137,21 @@ export default async function DeckStudyPage({
           <div className="mt-8">
             <EmptyState
               icon="学"
-              title={dueOnly ? "This deck is caught up" : "This deck is ready for words"}
-              actionHref={dueOnly ? `/decks/${deck.id}/study` : `/vocabulary/new?deckId=${deck.id}`}
-              actionLabel={dueOnly ? "Study all cards" : "Add vocabulary"}
-              secondaryHref={dueOnly ? `/vocabulary/new?deckId=${deck.id}` : undefined}
-              secondaryLabel={dueOnly ? "Add vocabulary" : undefined}
+              title={
+                dueOnly ? "This deck is caught up" : "This deck is ready for words"
+              }
+              actionHref={
+                dueOnly ? `/decks/${deck.id}/study` : `/decks/${deck.id}`
+              }
+              actionLabel={dueOnly ? "Study all cards" : "Back to deck"}
+              secondaryHref={
+                dueOnly ? `/decks/${deck.id}` : `/vocabulary/new?deckId=${deck.id}`
+              }
+              secondaryLabel={dueOnly ? "Back to deck" : "Add vocabulary"}
             >
               {dueOnly
                 ? "No cards are due right now. Study all cards if you want extra practice, or come back later."
-                : "Add or import vocabulary before starting a focused study session."}
+                : "Add or import vocabulary when you are ready to build this study set."}
             </EmptyState>
           </div>
         ) : (
