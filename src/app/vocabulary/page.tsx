@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, ReviewCard } from "@prisma/client";
 import { EmptyState } from "@/components/empty-state";
 import { prisma } from "@/lib/db";
 import { formatPinyinForDisplay } from "@/lib/pinyin-display";
@@ -218,7 +218,7 @@ export default async function VocabularyPage({
                       <MetaChip label={item.level?.name ?? "No level"} />
                     </td>
                     <td className="px-4 py-4 text-slate-600">
-                      {item.reviewCard ? formatDate(item.reviewCard.dueAt) : "Missing"}
+                      {formatReviewCardDate(item.reviewCard)}
                     </td>
                     <td className="px-4 py-4">
                       <Link
@@ -252,4 +252,16 @@ function formatDate(date: Date) {
     dateStyle: "medium",
     timeZone: "UTC",
   }).format(date);
+}
+
+function formatReviewCardDate(reviewCard: ReviewCard | null) {
+  if (!reviewCard) {
+    return "Missing";
+  }
+
+  if (reviewCard.status !== "ACTIVE") {
+    return "Not active";
+  }
+
+  return formatDate(reviewCard.dueAt);
 }

@@ -15,7 +15,7 @@ export default async function EditVocabularyPage({
   params,
 }: EditVocabularyPageProps) {
   const { id } = await params;
-  const [vocabularyItem, levels, decks] = await Promise.all([
+  const [vocabularyItem, levels] = await Promise.all([
     prisma.vocabularyItem.findUnique({
       where: {
         id,
@@ -33,19 +33,24 @@ export default async function EditVocabularyPage({
         sortOrder: "asc",
       },
     }),
-    prisma.deck.findMany({
-      where: {
-        isArchived: false,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    }),
   ]);
 
   if (!vocabularyItem) {
     notFound();
   }
+
+  const deckFilters = vocabularyItem.deckId
+    ? [{ isArchived: false }, { id: vocabularyItem.deckId }]
+    : [{ isArchived: false }];
+
+  const decks = await prisma.deck.findMany({
+    where: {
+      OR: deckFilters,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">

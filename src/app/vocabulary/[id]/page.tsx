@@ -51,17 +51,40 @@ export default async function VocabularyDetailPage({
       vocabularyItem.exampleEnglish,
   );
   const hasNotes = Boolean(vocabularyItem.notes?.trim());
+  const hasActiveReviewCard = vocabularyItem.reviewCard?.status === "ACTIVE";
+  const isReviewDue = Boolean(
+    hasActiveReviewCard &&
+      vocabularyItem.reviewCard &&
+      vocabularyItem.reviewCard.dueAt <= new Date(),
+  );
   const activeDeck =
-    vocabularyItem.deck && !vocabularyItem.deck.isArchived
+    !vocabularyItem.isArchived &&
+    hasActiveReviewCard &&
+    vocabularyItem.deck &&
+    !vocabularyItem.deck.isArchived
       ? vocabularyItem.deck
       : null;
-  const primaryStudyHref = activeDeck
-    ? `/decks/${activeDeck.id}/study`
-    : "/review";
-  const primaryStudyLabel = activeDeck ? "Study this deck" : "Review now";
-  const practiceHelper = activeDeck
-    ? "Review this word when it is due, or study it in context with its deck."
-    : "Review this word when it is due and keep it moving through your study routine.";
+  let primaryStudyHref = "/vocabulary";
+  let primaryStudyLabel = "Back to vocabulary";
+  let practiceHelper = "This word does not have an active review card right now.";
+
+  if (vocabularyItem.isArchived) {
+    practiceHelper =
+      "This word is archived, so it is hidden from active study sessions.";
+  } else if (activeDeck) {
+    primaryStudyHref = `/decks/${activeDeck.id}/study`;
+    primaryStudyLabel = "Study this deck";
+    practiceHelper =
+      "Review this word when it is due, or study it in context with its deck.";
+  } else if (isReviewDue) {
+    primaryStudyHref = "/review";
+    primaryStudyLabel = "Review now";
+    practiceHelper =
+      "This word is due now. Review it to keep it moving through your study routine.";
+  } else if (hasActiveReviewCard) {
+    practiceHelper =
+      "This word is not due yet. It will appear in Review when it is time.";
+  }
 
   return (
     <main className="bg-slate-50">

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ReviewCard } from "@prisma/client";
 import { EmptyState } from "@/components/empty-state";
 import { shouldShowDeckStudyActions } from "@/lib/archive-rules";
 import { archiveDeck } from "@/lib/decks";
@@ -43,7 +44,8 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
   const now = new Date();
   const activeWordCount = deck.vocabularyItems.length;
   const dueWordCount = deck.vocabularyItems.filter(
-    (item) => item.reviewCard && item.reviewCard.dueAt <= now,
+    (item) =>
+      item.reviewCard?.status === "ACTIVE" && item.reviewCard.dueAt <= now,
   ).length;
 
   return (
@@ -182,7 +184,7 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
                       </span>
                     </td>
                     <td className="px-4 py-4 text-slate-600">
-                      {item.reviewCard ? formatDate(item.reviewCard.dueAt) : "Missing"}
+                      {formatReviewCardDate(item.reviewCard)}
                     </td>
                     <td className="px-4 py-4">
                       <Link
@@ -227,4 +229,16 @@ function formatDate(date: Date) {
     dateStyle: "medium",
     timeZone: "UTC",
   }).format(date);
+}
+
+function formatReviewCardDate(reviewCard: ReviewCard | null) {
+  if (!reviewCard) {
+    return "Missing";
+  }
+
+  if (reviewCard.status !== "ACTIVE") {
+    return "Not active";
+  }
+
+  return formatDate(reviewCard.dueAt);
 }
