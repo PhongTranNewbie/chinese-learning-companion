@@ -51,11 +51,15 @@ export default async function VocabularyDetailPage({
       vocabularyItem.exampleEnglish,
   );
   const hasNotes = Boolean(vocabularyItem.notes?.trim());
-  const primaryStudyHref = vocabularyItem.deck
-    ? `/decks/${vocabularyItem.deck.id}/study`
+  const activeDeck =
+    vocabularyItem.deck && !vocabularyItem.deck.isArchived
+      ? vocabularyItem.deck
+      : null;
+  const primaryStudyHref = activeDeck
+    ? `/decks/${activeDeck.id}/study`
     : "/review";
-  const primaryStudyLabel = vocabularyItem.deck ? "Study this deck" : "Review now";
-  const practiceHelper = vocabularyItem.deck
+  const primaryStudyLabel = activeDeck ? "Study this deck" : "Review now";
+  const practiceHelper = activeDeck
     ? "Review this word when it is due, or study it in context with its deck."
     : "Review this word when it is due and keep it moving through your study routine.";
 
@@ -132,7 +136,7 @@ export default async function VocabularyDetailPage({
                 >
                   {primaryStudyLabel}
                 </Link>
-                {vocabularyItem.deck ? (
+                {activeDeck ? (
                   <Link
                     href="/review"
                     className="rounded-md bg-white px-4 py-3 text-center text-sm font-semibold text-teal-700 ring-1 ring-teal-200 transition hover:bg-teal-50"
