@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReviewCard } from "@prisma/client";
 import { EmptyState } from "@/components/empty-state";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { shouldShowDeckStudyActions } from "@/lib/archive-rules";
 import { archiveDeck } from "@/lib/decks";
 import { prisma } from "@/lib/db";
@@ -122,12 +123,11 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
               </Link>
               {!deck.isArchived ? (
                 <form action={archiveDeck.bind(null, deck.id)}>
-                  <button
-                    type="submit"
+                  <PendingSubmitButton
+                    idleLabel="Archive"
+                    pendingLabel="Archiving..."
                     className="rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
-                  >
-                    Archive
-                  </button>
+                  />
                 </form>
               ) : null}
             </div>

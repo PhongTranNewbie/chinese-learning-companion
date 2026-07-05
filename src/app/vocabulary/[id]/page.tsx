@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CharacterNotesDisplay } from "@/components/character-notes-display";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { archiveVocabularyItem } from "@/lib/vocabulary";
 import { prisma } from "@/lib/db";
 import { formatPinyinForDisplay } from "@/lib/pinyin-display";
@@ -102,12 +103,11 @@ export default async function VocabularyDetailPage({
             </Link>
             {!vocabularyItem.isArchived ? (
               <form action={archiveVocabularyItem.bind(null, vocabularyItem.id)}>
-                <button
-                  type="submit"
+                <PendingSubmitButton
+                  idleLabel="Archive"
+                  pendingLabel="Archiving..."
                   className="rounded-md bg-white px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm ring-1 ring-rose-100 transition hover:bg-rose-50"
-                >
-                  Archive
-                </button>
+                />
               </form>
             ) : null}
           </div>
