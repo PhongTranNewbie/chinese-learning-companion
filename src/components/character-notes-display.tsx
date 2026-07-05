@@ -21,21 +21,21 @@ export function CharacterNotesDisplay({
     <div className={`space-y-4 ${className}`}>
       <div className="grid gap-3">
         {notes.map((note) => {
-          const pictureText = note.mnemonicStory
+          const memoryStory = note.mnemonicStory
             ? cleanMemoryText(note.mnemonicStory)
             : null;
-          const rememberText = getRememberText(
+          const componentMeanings = getDistinctMemoryText(
             note.componentMeanings,
-            pictureText,
+            memoryStory,
           );
 
           return (
             <article
               key={note.id}
-              className="rounded-md bg-white p-4 ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:shadow-sm sm:p-5"
+              className="rounded-md bg-white p-4 ring-1 ring-slate-100 sm:p-5"
             >
-              <div className="grid gap-5 sm:grid-cols-[112px_1fr] sm:items-start">
-                <div>
+              <div className="grid gap-5 sm:grid-cols-[104px_1fr] sm:items-start">
+                <div className="flex flex-col items-center sm:items-start">
                   <div className="flex h-24 w-24 items-center justify-center rounded-md bg-teal-50 text-6xl font-semibold leading-none text-teal-700 ring-1 ring-teal-100">
                     {note.character}
                   </div>
@@ -48,7 +48,7 @@ export function CharacterNotesDisplay({
                   {note.components ? (
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        Break it down
+                        Character formula
                       </p>
                       <p className="mt-1 text-base font-semibold text-slate-900">
                         <span className="text-teal-700">{note.character}</span>{" "}
@@ -67,24 +67,24 @@ export function CharacterNotesDisplay({
                     </div>
                   ) : null}
 
-                  {pictureText ? (
-                    <div className="rounded-md bg-amber-50 px-4 py-3 ring-1 ring-amber-100">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-                        Picture it
+                  {componentMeanings ? (
+                    <div className="rounded-md bg-slate-50 px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        Component meanings
                       </p>
-                      <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-amber-950">
-                        {pictureText}
+                      <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                        {componentMeanings}
                       </p>
                     </div>
                   ) : null}
 
-                  {rememberText ? (
-                    <div className="rounded-md bg-slate-50 px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        Remember it
+                  {memoryStory ? (
+                    <div className="rounded-md bg-amber-50 px-4 py-3 ring-1 ring-amber-100">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                        Memory story
                       </p>
-                      <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                        {rememberText}
+                      <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-amber-950">
+                        {memoryStory}
                       </p>
                     </div>
                   ) : null}
@@ -118,17 +118,17 @@ function cleanMemoryText(value: string) {
     .trim();
 }
 
-function getRememberText(
+function getDistinctMemoryText(
   componentMeanings: string | null,
-  pictureText: string | null,
+  memoryStory: string | null,
 ) {
   if (!componentMeanings?.trim()) {
     return null;
   }
 
   if (
-    pictureText &&
-    normalizeForComparison(componentMeanings) === normalizeForComparison(pictureText)
+    memoryStory &&
+    normalizeForComparison(componentMeanings) === normalizeForComparison(memoryStory)
   ) {
     return null;
   }

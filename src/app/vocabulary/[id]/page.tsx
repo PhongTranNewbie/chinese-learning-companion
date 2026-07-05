@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CharacterNotesDisplay } from "@/components/character-notes-display";
 import { archiveVocabularyItem } from "@/lib/vocabulary";
 import { prisma } from "@/lib/db";
+import { formatPinyinForDisplay } from "@/lib/pinyin-display";
 
 export const dynamic = "force-dynamic";
 
@@ -37,24 +38,33 @@ export default async function VocabularyDetailPage({
   }
 
   const hasCharacterStories = vocabularyItem.characterNotes.length > 0;
-  const hasWordLevelMemoryNotes = !hasCharacterStories && Boolean(
-    vocabularyItem.wordFormationNote ||
-      vocabularyItem.memoryMnemonic ||
-      vocabularyItem.characterBreakdown,
-  );
+  const wordMemoryPanels = getWordMemoryPanels({
+    characterBreakdown: vocabularyItem.characterBreakdown,
+    wordFormationNote: vocabularyItem.wordFormationNote,
+    memoryMnemonic: vocabularyItem.memoryMnemonic,
+  });
+  const hasWordLevelMemoryNotes =
+    !hasCharacterStories && wordMemoryPanels.length > 0;
   const hasExample = Boolean(
     vocabularyItem.exampleChinese ||
       vocabularyItem.examplePinyin ||
       vocabularyItem.exampleEnglish,
   );
   const hasNotes = Boolean(vocabularyItem.notes?.trim());
+  const primaryStudyHref = vocabularyItem.deck
+    ? `/decks/${vocabularyItem.deck.id}/study`
+    : "/review";
+  const primaryStudyLabel = vocabularyItem.deck ? "Study this word" : "Review now";
+  const practiceHelper = vocabularyItem.deck
+    ? "Review this word when it is due, or study it in context with its deck."
+    : "Review this word when it is due and keep it moving through your study routine.";
 
   return (
     <main className="bg-slate-50">
-      <div className="mx-auto max-w-6xl px-5 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto max-w-5xl px-5 py-6 sm:px-6 sm:py-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/vocabulary" className="text-sm font-medium text-teal-700">
-            Back to vocabulary
+            Back to vocabulary library
           </Link>
           <div className="flex flex-wrap gap-3">
             <Link
@@ -67,7 +77,7 @@ export default async function VocabularyDetailPage({
               <form action={archiveVocabularyItem.bind(null, vocabularyItem.id)}>
                 <button
                   type="submit"
-                  className="rounded-md bg-white px-4 py-2 text-sm font-semibold text-red-700 shadow-sm ring-1 ring-red-100 transition hover:bg-red-50"
+                  className="rounded-md bg-white px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm ring-1 ring-rose-100 transition hover:bg-rose-50"
                 >
                   Archive
                 </button>
@@ -76,26 +86,10 @@ export default async function VocabularyDetailPage({
           </div>
         </div>
 
-        <section className="mt-5 rounded-md bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-center">
-            <div className="text-center">
-              <h1 className="mx-auto flex min-h-24 w-full max-w-sm items-center justify-center rounded-md bg-teal-50 px-6 py-6 text-7xl font-semibold leading-none text-teal-700 ring-1 ring-teal-100 sm:min-h-28 sm:text-8xl">
-                {vocabularyItem.hanzi}
-              </h1>
-              <p className="mt-4 text-2xl font-semibold text-slate-950">
-                {vocabularyItem.pinyin}
-              </p>
-              <p className="mt-2 text-xl text-slate-700">
-                {vocabularyItem.meaning}
-              </p>
-            </div>
-
-            <div className="rounded-md bg-slate-50 p-4 ring-1 ring-slate-100">
-              <p className="text-sm font-semibold text-slate-700">Practice next</p>
-              <p className="mt-1 text-sm text-slate-500">
-                Keep this word moving through your study routine.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
+        <section className="mt-5 overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-slate-100">
+          <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="bg-gradient-to-br from-teal-50 to-white px-5 py-7 text-center sm:px-8 sm:py-9">
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
                 {vocabularyItem.deck ? (
                   <LearningChip label={vocabularyItem.deck.name} tone="teal" />
                 ) : null}
@@ -112,35 +106,54 @@ export default async function VocabularyDetailPage({
                   <LearningChip label="Archived" />
                 ) : null}
               </div>
+              <h1 className="mt-5 text-7xl font-semibold leading-none text-teal-700 sm:text-8xl">
+                {vocabularyItem.hanzi}
+              </h1>
+              <p className="mt-5 text-2xl font-semibold text-slate-950">
+                {formatPinyinForDisplay(vocabularyItem.pinyin)}
+              </p>
+              <p className="mt-2 text-xl text-slate-700">
+                {vocabularyItem.meaning}
+              </p>
+            </div>
+
+            <div className="flex flex-col justify-center border-t border-slate-100 bg-white p-5 sm:p-6 lg:border-l lg:border-t-0">
+              <p className="text-sm font-semibold text-teal-700">Practice next</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950">
+                Keep it moving
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                {practiceHelper}
+              </p>
               <div className="mt-4 grid gap-2">
+                <Link
+                  href={primaryStudyHref}
+                  className="rounded-md bg-teal-700 px-4 py-3 text-center text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-teal-800"
+                >
+                  {primaryStudyLabel}
+                </Link>
                 {vocabularyItem.deck ? (
                   <Link
-                    href={`/decks/${vocabularyItem.deck.id}/study`}
-                    className="rounded-md bg-teal-700 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-teal-800"
+                    href="/review"
+                    className="rounded-md bg-white px-4 py-3 text-center text-sm font-semibold text-teal-700 ring-1 ring-teal-200 transition hover:bg-teal-50"
                   >
-                    Study deck
+                    Review due cards
                   </Link>
                 ) : null}
-                <Link
-                  href="/review"
-                  className="rounded-md bg-white px-4 py-2 text-center text-sm font-semibold text-teal-700 ring-1 ring-teal-200 transition hover:bg-teal-50"
-                >
-                  Review due cards
-                </Link>
               </div>
             </div>
           </div>
         </section>
 
         {hasWordLevelMemoryNotes || hasCharacterStories ? (
-          <section className="mt-5 rounded-md border-t-4 border-teal-600 bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
+          <section className="mt-5 rounded-md border-t-4 border-teal-700 bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div className="max-w-2xl">
                 <p className="text-sm font-semibold text-teal-700">
-                  Remember this word
+                  How to remember
                 </p>
                 <h2 className="mt-1 text-2xl font-semibold text-slate-950">
-                  Character breakdown
+                  Components and memory story
                 </h2>
               </div>
               <p className="text-sm font-semibold text-teal-700">
@@ -148,27 +161,16 @@ export default async function VocabularyDetailPage({
               </p>
             </div>
             {hasWordLevelMemoryNotes ? (
-              <div className="mt-4 rounded-md bg-slate-50 p-4">
+              <div className="mt-4 rounded-md bg-slate-50 p-4 ring-1 ring-slate-100">
                 <div className="grid gap-3 md:grid-cols-2">
-                  {!hasCharacterStories && vocabularyItem.characterBreakdown ? (
+                  {wordMemoryPanels.map((panel) => (
                     <MemoryPanel
-                      label="Character breakdown"
-                      value={vocabularyItem.characterBreakdown}
+                      key={panel.label}
+                      label={panel.label}
+                      value={panel.value}
+                      warm={panel.warm}
                     />
-                  ) : null}
-                  {vocabularyItem.wordFormationNote ? (
-                    <MemoryPanel
-                      label="Word formation"
-                      value={vocabularyItem.wordFormationNote}
-                    />
-                  ) : null}
-                  {vocabularyItem.memoryMnemonic ? (
-                    <MemoryPanel
-                      label="Memory aid"
-                      value={vocabularyItem.memoryMnemonic}
-                      warm
-                    />
-                  ) : null}
+                  ))}
                 </div>
               </div>
             ) : null}
@@ -187,7 +189,7 @@ export default async function VocabularyDetailPage({
 
         {hasExample ? (
           <section className="mt-5 rounded-md bg-white p-5 shadow-sm ring-1 ring-slate-100">
-            <p className="text-sm font-semibold text-slate-500">Example</p>
+            <p className="text-sm font-semibold text-teal-700">Example sentence</p>
             <div className="mt-3 max-w-3xl">
               {vocabularyItem.exampleChinese ? (
                 <p className="text-2xl font-semibold leading-9 text-slate-950">
@@ -200,7 +202,7 @@ export default async function VocabularyDetailPage({
               <div className="mt-3 rounded-md bg-slate-50 p-4">
                 {vocabularyItem.examplePinyin ? (
                   <p className="text-sm leading-6 text-slate-600">
-                    {vocabularyItem.examplePinyin}
+                    {formatPinyinForDisplay(vocabularyItem.examplePinyin)}
                   </p>
                 ) : null}
                 {vocabularyItem.exampleEnglish ? (
@@ -224,7 +226,7 @@ export default async function VocabularyDetailPage({
 
         <details className="mt-5 rounded-md bg-white p-5 text-sm text-slate-600 shadow-sm ring-1 ring-slate-100">
           <summary className="cursor-pointer font-semibold text-slate-700">
-            Review status
+            Review details
           </summary>
           {vocabularyItem.reviewCard ? (
             <dl className="mt-5 grid gap-4 md:grid-cols-3">
@@ -250,7 +252,10 @@ export default async function VocabularyDetailPage({
                 label="Times forgotten"
                 value={String(vocabularyItem.reviewCard.lapseCount)}
               />
-              <InfoTerm label="Status" value={vocabularyItem.reviewCard.status} />
+              <InfoTerm
+                label="Card status"
+                value={vocabularyItem.reviewCard.status.toLocaleLowerCase()}
+              />
             </dl>
           ) : (
             <p className="mt-3">No review card found for this vocabulary item.</p>
@@ -323,6 +328,41 @@ function MemoryPanel({
   );
 }
 
+function getWordMemoryPanels({
+  characterBreakdown,
+  wordFormationNote,
+  memoryMnemonic,
+}: {
+  characterBreakdown: string | null;
+  wordFormationNote: string | null;
+  memoryMnemonic: string | null;
+}) {
+  const panels: { label: string; value: string; warm?: boolean }[] = [];
+  const seen = new Set<string>();
+
+  const addPanel = (label: string, value: string | null, warm = false) => {
+    if (!value?.trim()) {
+      return;
+    }
+
+    const cleanedValue = cleanMemoryText(value);
+    const normalizedValue = normalizeMemoryText(cleanedValue);
+
+    if (!cleanedValue || seen.has(normalizedValue)) {
+      return;
+    }
+
+    seen.add(normalizedValue);
+    panels.push({ label, value: cleanedValue, warm });
+  };
+
+  addPanel("Character formula", characterBreakdown);
+  addPanel("Component meanings", wordFormationNote);
+  addPanel("Memory story", memoryMnemonic, true);
+
+  return panels;
+}
+
 function HighlightedChinese({
   text,
   target,
@@ -360,6 +400,10 @@ function cleanMemoryText(value: string) {
     .replace(/\s*[.;,]\s*mnemonic only[^.]*\./gi, "")
     .replace(/\s*[.;,]\s*not (a )?(true )?origin[^.]*\./gi, "")
     .trim();
+}
+
+function normalizeMemoryText(value: string) {
+  return value.toLocaleLowerCase().replace(/\s+/g, " ").trim();
 }
 
 function InfoTerm({ label, value }: { label: string; value: string }) {
