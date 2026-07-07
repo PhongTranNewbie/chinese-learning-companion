@@ -1,22 +1,15 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { auth } from "@/auth";
+import { signOutCurrentUser } from "@/lib/auth-actions";
+import { NavLinks } from "@/components/nav-links";
 
-const navItems = [
-  { href: "/", label: "Dashboard" },
-  { href: "/vocabulary", label: "Vocabulary" },
-  { href: "/decks", label: "Decks" },
-  { href: "/courses", label: "Courses" },
-  { href: "/review", label: "Review" },
-];
-
-export function AppNav() {
-  const pathname = usePathname();
+export async function AppNav() {
+  const session = await auth();
+  const userLabel = session?.user?.name ?? session?.user?.email ?? "Member";
 
   return (
     <header className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
         <Link href="/" className="min-w-0">
           <p className="text-base font-semibold text-slate-950">
             Chinese Learning Companion
@@ -25,32 +18,35 @@ export function AppNav() {
         </Link>
 
         <nav className="flex flex-wrap items-center gap-2">
-          {navItems.map((item) => {
-            const isActive =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href);
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`rounded-md px-3 py-2 text-sm font-medium transition ${
-                  isActive
-                    ? "bg-slate-950 text-white"
-                    : "text-slate-700 hover:bg-white hover:text-slate-950"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+          <NavLinks />
           <Link
             href="/vocabulary/new"
             className="rounded-md bg-teal-700 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
           >
             Add word
           </Link>
+          {session?.user ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-md bg-white px-2 py-1 shadow-sm ring-1 ring-slate-200">
+              <span className="max-w-44 truncate px-2 text-sm font-medium text-slate-600">
+                {userLabel}
+              </span>
+              <form action={signOutCurrentUser}>
+                <button
+                  type="submit"
+                  className="rounded px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Log out
+                </button>
+              </form>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-md border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50"
+            >
+              Log in
+            </Link>
+          )}
         </nav>
       </div>
     </header>
