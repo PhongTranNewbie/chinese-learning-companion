@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LessonForm } from "@/components/lesson-form";
+import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -13,11 +14,15 @@ type EditLessonPageProps = {
 };
 
 export default async function EditLessonPage({ params }: EditLessonPageProps) {
+  const user = await requireCurrentUser();
   const { id, lessonId } = await params;
   const lesson = await prisma.lesson.findFirst({
     where: {
       id: lessonId,
       courseId: id,
+      course: {
+        userId: user.id,
+      },
     },
     include: {
       course: true,
@@ -29,8 +34,11 @@ export default async function EditLessonPage({ params }: EditLessonPageProps) {
   }
 
   const deckFilters = lesson.deckId
-    ? [{ isArchived: false }, { id: lesson.deckId }]
-    : [{ isArchived: false }];
+    ? [
+        { userId: user.id, isArchived: false },
+        { userId: user.id, id: lesson.deckId },
+      ]
+    : [{ userId: user.id, isArchived: false }];
 
   const decks = await prisma.deck.findMany({
     where: {

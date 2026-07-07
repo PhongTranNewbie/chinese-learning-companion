@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CharacterNotesDisplay } from "@/components/character-notes-display";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { archiveVocabularyItem } from "@/lib/vocabulary";
+import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import { formatPinyinForDisplay } from "@/lib/pinyin-display";
 
@@ -17,10 +18,13 @@ type VocabularyDetailPageProps = {
 export default async function VocabularyDetailPage({
   params,
 }: VocabularyDetailPageProps) {
+  const user = await getCurrentUser();
+  const userId = user?.id ?? null;
   const { id } = await params;
-  const vocabularyItem = await prisma.vocabularyItem.findUnique({
+  const vocabularyItem = await prisma.vocabularyItem.findFirst({
     where: {
       id,
+      userId,
     },
     include: {
       deck: true,
@@ -94,25 +98,26 @@ export default async function VocabularyDetailPage({
           <Link href="/vocabulary" className="text-sm font-medium text-teal-700">
             Back to vocabulary library
           </Link>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href={`/vocabulary/${vocabularyItem.id}/edit`}
-              className="rounded-md bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
-            >
-              Edit
-            </Link>
-            {!vocabularyItem.isArchived ? (
-              <form action={archiveVocabularyItem.bind(null, vocabularyItem.id)}>
-                <PendingSubmitButton
-                  idleLabel="Archive"
-                  pendingLabel="Archiving..."
-                  className="rounded-md bg-white px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm ring-1 ring-rose-100 transition hover:bg-rose-50"
-                />
-              </form>
-            ) : null}
-          </div>
+          {user ? (
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href={`/vocabulary/${vocabularyItem.id}/edit`}
+                className="rounded-md bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50"
+              >
+                Edit
+              </Link>
+              {!vocabularyItem.isArchived ? (
+                <form action={archiveVocabularyItem.bind(null, vocabularyItem.id)}>
+                  <PendingSubmitButton
+                    idleLabel="Archive"
+                    pendingLabel="Archiving..."
+                    className="rounded-md bg-white px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm ring-1 ring-rose-100 transition hover:bg-rose-50"
+                  />
+                </form>
+              ) : null}
+            </div>
+          ) : null}
         </div>
-
         <section className="mt-5 overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-slate-100">
           <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="bg-gradient-to-br from-teal-50 to-white px-5 py-7 text-center sm:px-8 sm:py-9">

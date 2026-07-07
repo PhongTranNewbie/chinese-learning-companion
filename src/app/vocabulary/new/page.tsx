@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { VocabularyCreateForm } from "@/components/vocabulary-create-form";
+import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,7 @@ type NewVocabularyPageProps = {
 export default async function NewVocabularyPage({
   searchParams,
 }: NewVocabularyPageProps) {
+  const user = await requireCurrentUser();
   const params = await searchParams;
   const [levels, decks] = await Promise.all([
     prisma.level.findMany({
@@ -22,6 +24,7 @@ export default async function NewVocabularyPage({
     }),
     prisma.deck.findMany({
       where: {
+        userId: user.id,
         isArchived: false,
       },
       orderBy: {

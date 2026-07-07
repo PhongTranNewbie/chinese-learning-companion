@@ -2,12 +2,14 @@
 
 import type { ReviewGrade } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import { scheduleReview } from "@/lib/review-scheduler";
 
 const reviewGrades = ["AGAIN", "HARD", "GOOD", "EASY"] as const;
 
 export async function submitReview(formData: FormData) {
+  const user = await requireCurrentUser();
   const reviewCardId = readString(formData, "reviewCardId");
   const grade = readString(formData, "grade");
   const deckId = readString(formData, "deckId");
@@ -24,6 +26,7 @@ export async function submitReview(formData: FormData) {
         id: reviewCardId,
         status: "ACTIVE",
         vocabularyItem: {
+          userId: user.id,
           isArchived: false,
         },
       },

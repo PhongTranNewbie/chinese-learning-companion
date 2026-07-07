@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { ReviewSessionCards } from "@/components/review-session-cards";
+import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReviewPage() {
+  const user = await getCurrentUser();
+  const userId = user?.id ?? null;
   const now = new Date();
   const dueCards = await prisma.reviewCard.findMany({
     where: {
@@ -14,6 +17,7 @@ export default async function ReviewPage() {
         lte: now,
       },
       vocabularyItem: {
+        userId,
         isArchived: false,
       },
     },
@@ -74,10 +78,10 @@ export default async function ReviewPage() {
             </p>
           </div>
           <Link
-            href="/vocabulary/new"
+            href={user ? "/vocabulary/new" : "/login"}
             className="inline-flex items-center justify-center rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
           >
-            Add vocabulary
+            {user ? "Add vocabulary" : "Log in to save"}
           </Link>
         </div>
 

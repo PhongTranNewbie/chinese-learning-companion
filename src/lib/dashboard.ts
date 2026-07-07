@@ -1,6 +1,9 @@
+import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export async function getDashboardData(now = new Date()) {
+  const user = await getCurrentUser();
+  const userId = user?.id ?? null;
   const { startOfToday, startOfTomorrow } = getUtcDayRange(now);
 
   const [
@@ -14,11 +17,13 @@ export async function getDashboardData(now = new Date()) {
   ] = await Promise.all([
     prisma.vocabularyItem.count({
       where: {
+        userId,
         isArchived: false,
       },
     }),
     prisma.vocabularyItem.count({
       where: {
+        userId,
         isArchived: true,
       },
     }),
@@ -29,6 +34,7 @@ export async function getDashboardData(now = new Date()) {
           lte: now,
         },
         vocabularyItem: {
+          userId,
           isArchived: false,
         },
       },
@@ -41,6 +47,7 @@ export async function getDashboardData(now = new Date()) {
         },
         reviewCard: {
           vocabularyItem: {
+            userId,
             isArchived: false,
           },
         },
@@ -50,6 +57,7 @@ export async function getDashboardData(now = new Date()) {
       where: {
         reviewCard: {
           vocabularyItem: {
+            userId,
             isArchived: false,
           },
         },
@@ -70,6 +78,7 @@ export async function getDashboardData(now = new Date()) {
       where: {
         status: "ACTIVE",
         vocabularyItem: {
+          userId,
           isArchived: false,
         },
       },
@@ -91,6 +100,7 @@ export async function getDashboardData(now = new Date()) {
           select: {
             vocabularyItems: {
               where: {
+                userId,
                 isArchived: false,
               },
             },
@@ -121,7 +131,7 @@ function getUtcDayRange(now: Date) {
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
   );
   const startOfTomorrow = new Date(startOfToday);
-  startOfTomorrow.setUTCDate(startOfTomorrow.getUTCDate() + 1);
+  startOfTomorrow.setUTCDate(startOfToday.getUTCDate() + 1);
 
   return {
     startOfToday,

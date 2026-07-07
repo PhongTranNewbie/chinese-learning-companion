@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { shouldShowDeckStudyActions } from "@/lib/archive-rules";
 import { archiveDeck } from "@/lib/decks";
+import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import { formatPinyinForDisplay } from "@/lib/pinyin-display";
 
@@ -17,10 +18,13 @@ type DeckDetailPageProps = {
 };
 
 export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
+  const user = await getCurrentUser();
+  const userId = user?.id ?? null;
   const { id } = await params;
-  const deck = await prisma.deck.findUnique({
+  const deck = await prisma.deck.findFirst({
     where: {
       id,
+      userId,
     },
     include: {
       vocabularyItems: {
@@ -95,33 +99,41 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
                   >
                     Study deck
                   </Link>
-                  <Link
-                    href={`/vocabulary/new?deckId=${deck.id}`}
-                    className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    Add vocabulary
-                  </Link>
-                  <Link
-                    href={`/vocabulary/import?deckId=${deck.id}`}
-                    className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    Import CSV
-                  </Link>
+                  {user ? (
+                    <Link
+                      href={`/vocabulary/new?deckId=${deck.id}`}
+                      className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Add vocabulary
+                    </Link>
+                  ) : null}
+                  {user ? (
+                    <Link
+                      href={`/vocabulary/import?deckId=${deck.id}`}
+                      className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Import CSV
+                    </Link>
+                  ) : null}
                 </>
               ) : null}
-              <Link
-                href={`/api/vocabulary/export?deckId=${deck.id}`}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                Export CSV
-              </Link>
-              <Link
-                href={`/decks/${deck.id}/edit`}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                Edit
-              </Link>
-              {!deck.isArchived ? (
+              {user ? (
+                <Link
+                  href={`/api/vocabulary/export?deckId=${deck.id}`}
+                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Export CSV
+                </Link>
+              ) : null}
+              {user ? (
+                <Link
+                  href={`/decks/${deck.id}/edit`}
+                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Edit
+                </Link>
+              ) : null}
+              {user && !deck.isArchived ? (
                 <form action={archiveDeck.bind(null, deck.id)}>
                   <PendingSubmitButton
                     idleLabel="Archive"
@@ -139,10 +151,10 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
             <EmptyState
               icon="词"
               title="No active vocabulary in this deck"
-              actionHref={!deck.isArchived ? `/vocabulary/new?deckId=${deck.id}` : undefined}
-              actionLabel={!deck.isArchived ? "Add vocabulary" : undefined}
-              secondaryHref={!deck.isArchived ? `/vocabulary/import?deckId=${deck.id}` : undefined}
-              secondaryLabel={!deck.isArchived ? "Import CSV" : undefined}
+              actionHref={user && !deck.isArchived ? `/vocabulary/new?deckId=${deck.id}` : undefined}
+              actionLabel={user && !deck.isArchived ? "Add vocabulary" : undefined}
+              secondaryHref={user && !deck.isArchived ? `/vocabulary/import?deckId=${deck.id}` : undefined}
+              secondaryLabel={user && !deck.isArchived ? "Import CSV" : undefined}
             >
               {deck.isArchived
                 ? "This archived deck has no active vocabulary to study."

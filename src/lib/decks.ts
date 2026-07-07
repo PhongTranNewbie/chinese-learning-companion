@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export type DeckFormState = {
@@ -17,6 +18,7 @@ export async function createDeck(
   _previousState: DeckFormState,
   formData: FormData,
 ): Promise<DeckFormState> {
+  const user = await requireCurrentUser();
   const name = readString(formData, "name");
   const description = readString(formData, "description");
 
@@ -26,6 +28,7 @@ export async function createDeck(
 
   await prisma.deck.create({
     data: {
+      userId: user.id,
       name,
       description: description || null,
     },
@@ -40,6 +43,7 @@ export async function updateDeck(
   _previousState: DeckFormState,
   formData: FormData,
 ): Promise<DeckFormState> {
+  const user = await requireCurrentUser();
   const name = readString(formData, "name");
   const description = readString(formData, "description");
 
@@ -47,9 +51,10 @@ export async function updateDeck(
     return { errors: { name: "Deck name is required." } };
   }
 
-  await prisma.deck.update({
+  const result = await prisma.deck.updateMany({
     where: {
       id: deckId,
+      userId: user.id,
     },
     data: {
       name,
@@ -57,15 +62,22 @@ export async function updateDeck(
     },
   });
 
+  if (result.count === 0) {
+    redirect("/decks");
+  }
+
   revalidatePath("/decks");
   revalidatePath(`/decks/${deckId}`);
   redirect(`/decks/${deckId}`);
 }
 
 export async function archiveDeck(deckId: string) {
-  await prisma.deck.update({
+  const user = await requireCurrentUser();
+
+  await prisma.deck.updateMany({
     where: {
       id: deckId,
+      userId: user.id,
     },
     data: {
       isArchived: true,

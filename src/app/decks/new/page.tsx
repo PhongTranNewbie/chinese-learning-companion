@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { DeckForm } from "@/components/deck-form";
+import { requireCurrentUser } from "@/lib/current-user";
 
-export default function NewDeckPage() {
+export default async function NewDeckPage() {
+  await requireCurrentUser();
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
       <div className="border-b border-slate-200 pb-6">

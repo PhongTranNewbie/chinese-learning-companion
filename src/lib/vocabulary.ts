@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { parseCharacterNotesInput } from "@/lib/character-notes";
+import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export type CreateVocabularyState = {
@@ -38,10 +39,30 @@ function readOptionalString(formData: FormData, field: string) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+async function getOwnedDeckId(deckId: string | null, userId: string) {
+  if (!deckId) {
+    return null;
+  }
+
+  const deck = await prisma.deck.findFirst({
+    where: {
+      id: deckId,
+      userId,
+      isArchived: false,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return deck?.id ?? null;
+}
+
 export async function createVocabularyItem(
   _previousState: CreateVocabularyState,
   formData: FormData,
 ): Promise<CreateVocabularyState> {
+  const user = await requireCurrentUser();
   const hanzi = readRequiredString(formData, "hanzi");
   const pinyin = readRequiredString(formData, "pinyin");
   const meaning = readRequiredString(formData, "meaning");
@@ -67,19 +88,25 @@ export async function createVocabularyItem(
   const optionalValues = Object.fromEntries(
     optionalFields.map((field) => [field, readOptionalString(formData, field)]),
   );
+  const deckId = await getOwnedDeckId(optionalValues.deckId, user.id);
+
+  if (optionalValues.deckId && !deckId) {
+    return { errors: { deckId: "Choose one of your active decks." } };
+  }
+
   const characterNotes = parseCharacterNotesInput(
     readOptionalString(formData, "characterNotes"),
   );
-
   const now = new Date();
 
   await prisma.$transaction(async (tx) => {
     await tx.vocabularyItem.create({
       data: {
+        userId: user.id,
         hanzi,
         pinyin,
         meaning,
-        deckId: optionalValues.deckId,
+        deckId,
         levelId: optionalValues.levelId,
         partOfSpeech: optionalValues.partOfSpeech,
         measureWord: optionalValues.measureWord,
@@ -111,6 +138,7 @@ export async function updateVocabularyItem(
   _previousState: CreateVocabularyState,
   formData: FormData,
 ): Promise<CreateVocabularyState> {
+  const user = await requireCurrentUser();
   const hanzi = readRequiredString(formData, "hanzi");
   const pinyin = readRequiredString(formData, "pinyin");
   const meaning = readRequiredString(formData, "meaning");
@@ -133,23 +161,44 @@ export async function updateVocabularyItem(
     return { errors };
   }
 
+  const existing = await prisma.vocabularyItem.findFirst({
+    where: {
+      id: vocabularyItemId,
+      userId: user.id,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!existing) {
+    redirect("/vocabulary");
+  }
+
   const optionalValues = Object.fromEntries(
     optionalFields.map((field) => [field, readOptionalString(formData, field)]),
   );
+  const deckId = await getOwnedDeckId(optionalValues.deckId, user.id);
+
+  if (optionalValues.deckId && !deckId) {
+    return { errors: { deckId: "Choose one of your active decks." } };
+  }
+
   const characterNotes = parseCharacterNotesInput(
     readOptionalString(formData, "characterNotes"),
   );
 
   await prisma.$transaction(async (tx) => {
-    await tx.vocabularyItem.update({
+    await tx.vocabularyItem.updateMany({
       where: {
         id: vocabularyItemId,
+        userId: user.id,
       },
       data: {
         hanzi,
         pinyin,
         meaning,
-        deckId: optionalValues.deckId,
+        deckId,
         levelId: optionalValues.levelId,
         partOfSpeech: optionalValues.partOfSpeech,
         measureWord: optionalValues.measureWord,
@@ -165,6 +214,9 @@ export async function updateVocabularyItem(
     await tx.vocabularyCharacterNote.deleteMany({
       where: {
         vocabularyItemId,
+        vocabularyItem: {
+          userId: user.id,
+        },
       },
     });
     if (characterNotes.length > 0) {
@@ -183,20 +235,48 @@ export async function updateVocabularyItem(
 }
 
 export async function archiveVocabularyItem(vocabularyItemId: string) {
+  const user = await requireCurrentUser();
+
   await prisma.$transaction(async (tx) => {
-    await tx.vocabularyItem.update({
+    const vocabularyItem = await tx.vocabularyItem.findFirst({
       where: {
         id: vocabularyItemId,
+        userId: user.id,
       },
-      data: {
-        isArchived: true,
+      select: {
+        id: true,
         reviewCard: {
-          update: {
-            status: "ARCHIVED",
+          select: {
+            id: true,
           },
         },
       },
     });
+
+    if (!vocabularyItem) {
+      return;
+    }
+
+    await tx.vocabularyItem.updateMany({
+      where: {
+        id: vocabularyItem.id,
+        userId: user.id,
+      },
+      data: {
+        isArchived: true,
+      },
+    });
+
+    if (vocabularyItem.reviewCard) {
+      await tx.reviewCard.update({
+        where: {
+          id: vocabularyItem.reviewCard.id,
+        },
+        data: {
+          status: "ARCHIVED",
+        },
+      });
+    }
   });
 
   revalidatePath("/vocabulary");

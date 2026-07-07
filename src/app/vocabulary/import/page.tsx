@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { VocabularyImportForm } from "@/components/vocabulary-import-form";
+import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -13,9 +14,11 @@ type ImportPageProps = {
 export default async function VocabularyImportPage({
   searchParams,
 }: ImportPageProps) {
+  const user = await requireCurrentUser();
   const params = await searchParams;
   const decks = await prisma.deck.findMany({
     where: {
+      userId: user.id,
       isArchived: false,
     },
     orderBy: {

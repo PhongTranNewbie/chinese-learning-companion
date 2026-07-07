@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CourseForm } from "@/components/course-form";
+import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -12,10 +13,12 @@ type EditCoursePageProps = {
 };
 
 export default async function EditCoursePage({ params }: EditCoursePageProps) {
+  const user = await requireCurrentUser();
   const { id } = await params;
-  const course = await prisma.course.findUnique({
+  const course = await prisma.course.findFirst({
     where: {
       id,
+      userId: user.id,
     },
   });
 

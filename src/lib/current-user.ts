@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 
 export async function getCurrentSession() {
@@ -17,4 +18,16 @@ export async function getCurrentUser() {
     email: session.user.email ?? null,
     image: session.user.image ?? null,
   };
+}
+
+export type CurrentUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
+
+export async function requireCurrentUser() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  return user;
 }

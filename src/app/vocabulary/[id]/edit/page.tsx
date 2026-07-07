@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { VocabularyCreateForm } from "@/components/vocabulary-create-form";
+import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -14,11 +15,13 @@ type EditVocabularyPageProps = {
 export default async function EditVocabularyPage({
   params,
 }: EditVocabularyPageProps) {
+  const user = await requireCurrentUser();
   const { id } = await params;
   const [vocabularyItem, levels] = await Promise.all([
-    prisma.vocabularyItem.findUnique({
+    prisma.vocabularyItem.findFirst({
       where: {
         id,
+        userId: user.id,
       },
       include: {
         characterNotes: {
@@ -40,8 +43,11 @@ export default async function EditVocabularyPage({
   }
 
   const deckFilters = vocabularyItem.deckId
-    ? [{ isArchived: false }, { id: vocabularyItem.deckId }]
-    : [{ isArchived: false }];
+    ? [
+        { userId: user.id, isArchived: false },
+        { userId: user.id, id: vocabularyItem.deckId },
+      ]
+    : [{ userId: user.id, isArchived: false }];
 
   const decks = await prisma.deck.findMany({
     where: {

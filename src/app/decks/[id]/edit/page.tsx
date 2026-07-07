@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DeckForm } from "@/components/deck-form";
+import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -12,10 +13,12 @@ type EditDeckPageProps = {
 };
 
 export default async function EditDeckPage({ params }: EditDeckPageProps) {
+  const user = await requireCurrentUser();
   const { id } = await params;
-  const deck = await prisma.deck.findUnique({
+  const deck = await prisma.deck.findFirst({
     where: {
       id,
+      userId: user.id,
     },
   });
 

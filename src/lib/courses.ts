@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export type CourseFormState = {
@@ -32,10 +33,30 @@ function readSortOrder(formData: FormData) {
   return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
 
+async function getOwnedDeckId(deckId: string | null, userId: string) {
+  if (!deckId) {
+    return null;
+  }
+
+  const deck = await prisma.deck.findFirst({
+    where: {
+      id: deckId,
+      userId,
+      isArchived: false,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return deck?.id ?? null;
+}
+
 export async function createCourse(
   _previousState: CourseFormState,
   formData: FormData,
 ): Promise<CourseFormState> {
+  const user = await requireCurrentUser();
   const title = readString(formData, "title");
   const description = readOptionalString(formData, "description");
 
@@ -45,6 +66,7 @@ export async function createCourse(
 
   const course = await prisma.course.create({
     data: {
+      userId: user.id,
       title,
       description,
     },
@@ -59,6 +81,7 @@ export async function updateCourse(
   _previousState: CourseFormState,
   formData: FormData,
 ): Promise<CourseFormState> {
+  const user = await requireCurrentUser();
   const title = readString(formData, "title");
   const description = readOptionalString(formData, "description");
 
@@ -66,9 +89,10 @@ export async function updateCourse(
     return { errors: { title: "Course title is required." } };
   }
 
-  await prisma.course.update({
+  const result = await prisma.course.updateMany({
     where: {
       id: courseId,
+      userId: user.id,
     },
     data: {
       title,
@@ -76,15 +100,22 @@ export async function updateCourse(
     },
   });
 
+  if (result.count === 0) {
+    redirect("/courses");
+  }
+
   revalidatePath("/courses");
   revalidatePath(`/courses/${courseId}`);
   redirect(`/courses/${courseId}`);
 }
 
 export async function archiveCourse(courseId: string) {
-  await prisma.course.update({
+  const user = await requireCurrentUser();
+
+  await prisma.course.updateMany({
     where: {
       id: courseId,
+      userId: user.id,
     },
     data: {
       isArchived: true,
@@ -122,9 +153,10 @@ async function saveLesson({
   lessonId?: string;
   formData: FormData;
 }): Promise<LessonFormState> {
+  const user = await requireCurrentUser();
   const title = readString(formData, "title");
   const description = readOptionalString(formData, "description");
-  const deckId = readOptionalString(formData, "deckId");
+  const requestedDeckId = readOptionalString(formData, "deckId");
   const sortOrder = readSortOrder(formData);
   const errors: Record<string, string> = {};
 
@@ -136,15 +168,39 @@ async function saveLesson({
     errors.sortOrder = "Order must be a whole number.";
   }
 
+  const course = await prisma.course.findFirst({
+    where: {
+      id: courseId,
+      userId: user.id,
+      isArchived: false,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!course) {
+    redirect("/courses");
+  }
+
+  const deckId = await getOwnedDeckId(requestedDeckId, user.id);
+
+  if (requestedDeckId && !deckId) {
+    errors.deckId = "Choose one of your active decks.";
+  }
+
   if (Object.keys(errors).length > 0) {
     return { errors };
   }
 
   if (lessonId) {
-    await prisma.lesson.updateMany({
+    const result = await prisma.lesson.updateMany({
       where: {
         id: lessonId,
         courseId,
+        course: {
+          userId: user.id,
+        },
       },
       data: {
         title,
@@ -153,6 +209,10 @@ async function saveLesson({
         sortOrder,
       },
     });
+
+    if (result.count === 0) {
+      redirect(`/courses/${courseId}`);
+    }
   } else {
     await prisma.lesson.create({
       data: {
@@ -171,10 +231,15 @@ async function saveLesson({
 }
 
 export async function archiveLesson(courseId: string, lessonId: string) {
+  const user = await requireCurrentUser();
+
   await prisma.lesson.updateMany({
     where: {
       id: lessonId,
       courseId,
+      course: {
+        userId: user.id,
+      },
     },
     data: {
       isArchived: true,

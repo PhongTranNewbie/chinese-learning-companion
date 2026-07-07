@@ -1,12 +1,16 @@
 import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
+import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export default async function DecksPage() {
+  const user = await getCurrentUser();
+  const userId = user?.id ?? null;
   const decks = await prisma.deck.findMany({
     where: {
+      userId,
       isArchived: false,
     },
     include: {

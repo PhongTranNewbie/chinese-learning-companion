@@ -1,24 +1,43 @@
+import { NextResponse } from "next/server";
 import { toCsv } from "@/lib/csv";
 import { serializeCharacterNotes } from "@/lib/character-notes";
+import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   const { searchParams } = new URL(request.url);
   const deckId = searchParams.get("deckId")?.trim() || undefined;
 
+  if (deckId) {
+    const deck = await prisma.deck.findFirst({
+      where: {
+        id: deckId,
+        userId: user.id,
+        isArchived: false,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!deck) {
+      return new Response("Deck not found.", { status: 404 });
+    }
+  }
+
   const vocabularyItems = await prisma.vocabularyItem.findMany({
     where: {
+      userId: user.id,
       isArchived: false,
       ...(deckId ? { deckId } : {}),
-      ...(deckId
-        ? {
-            deck: {
-              isArchived: false,
-            },
-          }
-        : {}),
     },
     include: {
       deck: true,

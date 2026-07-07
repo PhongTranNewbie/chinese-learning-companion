@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { parseCharacterNotesInput } from "@/lib/character-notes";
 import { parseCsv } from "@/lib/csv";
+import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import { validateVocabularyImportRows } from "@/lib/vocabulary-import-validation";
 
@@ -16,11 +17,29 @@ export async function importVocabularyCsv(
   _previousState: ImportState,
   formData: FormData,
 ): Promise<ImportState> {
+  const user = await requireCurrentUser();
   const file = formData.get("csv");
   const defaultDeckId = readOptionalString(formData, "deckId");
 
   if (!(file instanceof File) || file.size === 0) {
     return { errors: ["Choose a CSV file to import."] };
+  }
+
+  if (defaultDeckId) {
+    const defaultDeck = await prisma.deck.findFirst({
+      where: {
+        id: defaultDeckId,
+        userId: user.id,
+        isArchived: false,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!defaultDeck) {
+      return { errors: ["Choose one of your active decks before importing."] };
+    }
   }
 
   const content = await file.text();
@@ -50,7 +69,7 @@ export async function importVocabularyCsv(
       seenRows.add(duplicateKey);
 
       const deckId = row.deck?.trim()
-        ? await getOrCreateDeckId(tx, row.deck.trim())
+        ? await getOrCreateDeckId(tx, row.deck.trim(), user.id)
         : defaultDeckId;
       const levelId = row.level?.trim()
         ? await getLevelId(tx, row.level.trim())
@@ -58,6 +77,7 @@ export async function importVocabularyCsv(
 
       const duplicate = await tx.vocabularyItem.findFirst({
         where: {
+          userId: user.id,
           isArchived: false,
           deckId,
           hanzi: row.hanzi.trim(),
@@ -73,6 +93,7 @@ export async function importVocabularyCsv(
 
       await tx.vocabularyItem.create({
         data: {
+          userId: user.id,
           hanzi: row.hanzi.trim(),
           pinyin: row.pinyin.trim(),
           meaning: row.meaning.trim(),
@@ -139,9 +160,11 @@ async function getLevelId(
 async function getOrCreateDeckId(
   tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
   name: string,
+  userId: string,
 ) {
   const existing = await tx.deck.findFirst({
     where: {
+      userId,
       name: {
         equals: name,
         mode: "insensitive",
@@ -156,6 +179,7 @@ async function getOrCreateDeckId(
 
   const deck = await tx.deck.create({
     data: {
+      userId,
       name,
     },
   });

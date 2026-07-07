@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Prisma, ReviewCard } from "@prisma/client";
 import { EmptyState } from "@/components/empty-state";
+import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import { formatPinyinForDisplay } from "@/lib/pinyin-display";
 
@@ -17,6 +18,8 @@ type VocabularyPageProps = {
 export default async function VocabularyPage({
   searchParams,
 }: VocabularyPageProps) {
+  const user = await getCurrentUser();
+  const userId = user?.id ?? null;
   const [levels, decks] = await Promise.all([
     prisma.level.findMany({
       orderBy: {
@@ -25,6 +28,7 @@ export default async function VocabularyPage({
     }),
     prisma.deck.findMany({
       where: {
+        userId,
         isArchived: false,
       },
       orderBy: {
@@ -38,6 +42,7 @@ export default async function VocabularyPage({
   const deckId = params.deckId?.trim() ?? "";
 
   const where: Prisma.VocabularyItemWhereInput = {
+    userId,
     isArchived: false,
     ...(levelId ? { levelId } : {}),
     ...(deckId ? { deckId } : {}),

@@ -1,12 +1,16 @@
 import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
+import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export default async function CoursesPage() {
+  const user = await getCurrentUser();
+  const userId = user?.id ?? null;
   const courses = await prisma.course.findMany({
     where: {
+      userId,
       isArchived: false,
     },
     include: {

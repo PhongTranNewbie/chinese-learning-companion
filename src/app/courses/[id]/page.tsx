@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/empty-state";
 import { shouldShowDeckStudyActions } from "@/lib/archive-rules";
 import { archiveCourse, archiveLesson } from "@/lib/courses";
+import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -14,11 +15,14 @@ type CourseDetailPageProps = {
 };
 
 export default async function CourseDetailPage({ params }: CourseDetailPageProps) {
+  const user = await getCurrentUser();
+  const userId = user?.id ?? null;
   const { id } = await params;
   const now = new Date();
-  const course = await prisma.course.findUnique({
+  const course = await prisma.course.findFirst({
     where: {
       id,
+      userId,
     },
     include: {
       lessons: {
@@ -99,32 +103,34 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
                 />
               </div>
             </div>
-            <div className="flex flex-wrap gap-3 lg:justify-end">
-              {!course.isArchived ? (
-                <Link
-                  href={`/courses/${course.id}/lessons/new`}
-                  className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
-                >
-                  Add lesson
-                </Link>
-              ) : null}
-              <Link
-                href={`/courses/${course.id}/edit`}
-                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                Edit
-              </Link>
-              {!course.isArchived ? (
-                <form action={archiveCourse.bind(null, course.id)}>
-                  <button
-                    type="submit"
-                    className="rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+            {user ? (
+              <div className="flex flex-wrap gap-3 lg:justify-end">
+                {!course.isArchived ? (
+                  <Link
+                    href={`/courses/${course.id}/lessons/new`}
+                    className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
                   >
-                    Archive
-                  </button>
-                </form>
-              ) : null}
-            </div>
+                    Add lesson
+                  </Link>
+                ) : null}
+                <Link
+                  href={`/courses/${course.id}/edit`}
+                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Edit
+                </Link>
+                {!course.isArchived ? (
+                  <form action={archiveCourse.bind(null, course.id)}>
+                    <button
+                      type="submit"
+                      className="rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+                    >
+                      Archive
+                    </button>
+                  </form>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -133,8 +139,8 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
           <EmptyState
             icon="课"
             title="No active lessons yet"
-            actionHref={!course.isArchived ? `/courses/${course.id}/lessons/new` : undefined}
-            actionLabel={!course.isArchived ? "Add lesson" : undefined}
+            actionHref={user && !course.isArchived ? `/courses/${course.id}/lessons/new` : undefined}
+            actionLabel={user && !course.isArchived ? "Add lesson" : undefined}
           >
             {course.isArchived
               ? "This archived course has no active lesson steps."
@@ -232,20 +238,24 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
                         </Link>
                       </>
                     ) : null}
-                    <Link
-                      href={`/courses/${course.id}/lessons/${lesson.id}/edit`}
-                      className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                    >
-                      Edit
-                    </Link>
-                    <form action={archiveLesson.bind(null, course.id, lesson.id)}>
-                      <button
-                        type="submit"
-                        className="rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
-                      >
-                        Archive
-                      </button>
-                    </form>
+                    {user ? (
+                      <>
+                        <Link
+                          href={`/courses/${course.id}/lessons/${lesson.id}/edit`}
+                          className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                        >
+                          Edit
+                        </Link>
+                        <form action={archiveLesson.bind(null, course.id, lesson.id)}>
+                          <button
+                            type="submit"
+                            className="rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+                          >
+                            Archive
+                          </button>
+                        </form>
+                      </>
+                    ) : null}
                   </div>
                 </div>
               </article>

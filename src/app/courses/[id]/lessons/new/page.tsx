@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LessonForm } from "@/components/lesson-form";
+import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -12,16 +13,19 @@ type NewLessonPageProps = {
 };
 
 export default async function NewLessonPage({ params }: NewLessonPageProps) {
+  const user = await requireCurrentUser();
   const { id } = await params;
   const [course, decks] = await Promise.all([
     prisma.course.findFirst({
       where: {
         id,
+        userId: user.id,
         isArchived: false,
       },
     }),
     prisma.deck.findMany({
       where: {
+        userId: user.id,
         isArchived: false,
       },
       orderBy: {

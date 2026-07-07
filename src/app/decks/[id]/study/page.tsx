@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DeckStudyCards } from "@/components/deck-study-cards";
 import { EmptyState } from "@/components/empty-state";
+import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,8 @@ export default async function DeckStudyPage({
   params,
   searchParams,
 }: DeckStudyPageProps) {
+  const user = await getCurrentUser();
+  const userId = user?.id ?? null;
   const { id } = await params;
   const { mode } = await searchParams;
   const dueOnly = mode === "due";
@@ -27,6 +30,7 @@ export default async function DeckStudyPage({
   const deck = await prisma.deck.findFirst({
     where: {
       id,
+      userId,
       isArchived: false,
     },
     include: {
@@ -145,9 +149,9 @@ export default async function DeckStudyPage({
               }
               actionLabel={dueOnly ? "Study all cards" : "Back to deck"}
               secondaryHref={
-                dueOnly ? `/decks/${deck.id}` : `/vocabulary/new?deckId=${deck.id}`
+                dueOnly ? `/decks/${deck.id}` : user ? `/vocabulary/new?deckId=${deck.id}` : "/login"
               }
-              secondaryLabel={dueOnly ? "Back to deck" : "Add vocabulary"}
+              secondaryLabel={dueOnly ? "Back to deck" : user ? "Add vocabulary" : "Log in to add"}
             >
               {dueOnly
                 ? "No cards are due right now. Study all cards if you want extra practice, or come back later."
