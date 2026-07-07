@@ -164,6 +164,7 @@ export default async function DeckStudyPage({
             deckId={deck.id}
             deckName={deck.name}
             dueOnly={dueOnly}
+            canSaveProgress={Boolean(user)}
           />
         )}
       </div>

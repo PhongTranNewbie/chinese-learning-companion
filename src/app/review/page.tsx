@@ -100,7 +100,7 @@ export default async function ReviewPage() {
             </EmptyState>
           </div>
         ) : (
-          <ReviewSessionCards cards={cards} />
+          <ReviewSessionCards cards={cards} canSaveProgress={Boolean(user)} />
         )}
       </div>
     </main>

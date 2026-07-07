@@ -57,11 +57,13 @@ export function DeckStudyCards({
   deckId,
   deckName,
   dueOnly,
+  canSaveProgress,
 }: {
   cards: StudyCard[];
   deckId: string;
   deckName: string;
   dueOnly: boolean;
+  canSaveProgress: boolean;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -96,6 +98,7 @@ export function DeckStudyCards({
         <p className="mx-auto mt-2 max-w-md text-slate-600">
           You moved through {cards.length} card{cards.length === 1 ? "" : "s"}{" "}
           in {deckName}. Come back when you want another calm pass.
+          {canSaveProgress ? null : " Sign in when you want future sessions to save your review timing."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Link
@@ -105,10 +108,10 @@ export function DeckStudyCards({
             Back to deck
           </Link>
           <Link
-            href="/review"
+            href={canSaveProgress ? "/review" : "/login"}
             className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            Review due cards
+            {canSaveProgress ? "Review due cards" : "Sign in to save progress"}
           </Link>
         </div>
       </section>
@@ -229,30 +232,45 @@ export function DeckStudyCards({
               <p className="text-sm font-semibold text-slate-700">
                 How did your memory feel?
               </p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                {Object.entries(gradeLabels).map(([grade, gradeMeta]) => (
-                  <form key={grade} action={submitReview}>
-                    <input
-                      type="hidden"
-                      name="reviewCardId"
-                      value={currentCard.reviewCardId}
-                    />
-                    <input type="hidden" name="grade" value={grade} />
-                    <input type="hidden" name="deckId" value={deckId} />
-                    <button
-                      type="submit"
-                      className={`min-h-20 w-full rounded-md border px-4 py-3 text-left transition hover:-translate-y-0.5 ${gradeMeta.className}`}
-                    >
-                      <span className="block text-base font-semibold">
-                        {gradeMeta.label}
-                      </span>
-                      <span className="mt-1 block text-sm opacity-80">
-                        {gradeMeta.helper}
-                      </span>
-                    </button>
-                  </form>
-                ))}
-              </div>
+              {canSaveProgress ? (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {Object.entries(gradeLabels).map(([grade, gradeMeta]) => (
+                    <form key={grade} action={submitReview}>
+                      <input
+                        type="hidden"
+                        name="reviewCardId"
+                        value={currentCard.reviewCardId}
+                      />
+                      <input type="hidden" name="grade" value={grade} />
+                      <input type="hidden" name="deckId" value={deckId} />
+                      <button
+                        type="submit"
+                        className={`min-h-20 w-full rounded-md border px-4 py-3 text-left transition hover:-translate-y-0.5 ${gradeMeta.className}`}
+                      >
+                        <span className="block text-base font-semibold">
+                          {gradeMeta.label}
+                        </span>
+                        <span className="mt-1 block text-sm opacity-80">
+                          {gradeMeta.helper}
+                        </span>
+                      </button>
+                    </form>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-3 rounded-md bg-teal-50 p-4 ring-1 ring-teal-100">
+                  <p className="text-sm leading-6 text-teal-950">
+                    Keep moving through the deck for practice. Sign in when you
+                    want these ratings to update your review schedule.
+                  </p>
+                  <Link
+                    href="/login"
+                    className="mt-3 inline-flex min-h-11 items-center justify-center rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
+                  >
+                    Sign in to save progress
+                  </Link>
+                </div>
+              )}
             </section>
           </div>
         ) : null}

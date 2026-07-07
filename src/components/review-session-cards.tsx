@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { submitReview } from "@/lib/review";
 import { formatPinyinForDisplay } from "@/lib/pinyin-display";
@@ -51,7 +52,13 @@ const gradeLabels = {
   },
 } as const;
 
-export function ReviewSessionCards({ cards }: { cards: ReviewSessionCard[] }) {
+export function ReviewSessionCards({
+  cards,
+  canSaveProgress,
+}: {
+  cards: ReviewSessionCard[];
+  canSaveProgress: boolean;
+}) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
   const currentCard = cards[currentIndex];
@@ -186,25 +193,40 @@ export function ReviewSessionCards({ cards }: { cards: ReviewSessionCard[] }) {
               <p className="text-sm font-semibold text-slate-700">
                 How did your memory feel?
               </p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                {Object.entries(gradeLabels).map(([grade, gradeMeta]) => (
-                  <form key={grade} action={submitReview}>
-                    <input type="hidden" name="reviewCardId" value={currentCard.id} />
-                    <input type="hidden" name="grade" value={grade} />
-                    <button
-                      type="submit"
-                      className={`min-h-20 w-full rounded-md border px-4 py-3 text-left transition hover:-translate-y-0.5 ${gradeMeta.className}`}
-                    >
-                      <span className="block text-base font-semibold">
-                        {gradeMeta.label}
-                      </span>
-                      <span className="mt-1 block text-sm opacity-80">
-                        {gradeMeta.helper}
-                      </span>
-                    </button>
-                  </form>
-                ))}
-              </div>
+              {canSaveProgress ? (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {Object.entries(gradeLabels).map(([grade, gradeMeta]) => (
+                    <form key={grade} action={submitReview}>
+                      <input type="hidden" name="reviewCardId" value={currentCard.id} />
+                      <input type="hidden" name="grade" value={grade} />
+                      <button
+                        type="submit"
+                        className={`min-h-20 w-full rounded-md border px-4 py-3 text-left transition hover:-translate-y-0.5 ${gradeMeta.className}`}
+                      >
+                        <span className="block text-base font-semibold">
+                          {gradeMeta.label}
+                        </span>
+                        <span className="mt-1 block text-sm opacity-80">
+                          {gradeMeta.helper}
+                        </span>
+                      </button>
+                    </form>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-3 rounded-md bg-teal-50 p-4 ring-1 ring-teal-100">
+                  <p className="text-sm leading-6 text-teal-950">
+                    You can keep practicing these demo cards. Sign in when you
+                    want your ratings and next review times to be saved.
+                  </p>
+                  <Link
+                    href="/login"
+                    className="mt-3 inline-flex min-h-11 items-center justify-center rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
+                  >
+                    Sign in to save progress
+                  </Link>
+                </div>
+              )}
             </section>
           </div>
         ) : null}
