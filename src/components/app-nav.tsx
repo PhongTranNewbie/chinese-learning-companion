@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { auth } from "@/auth";
 import { signOutCurrentUser } from "@/lib/auth-actions";
@@ -26,19 +27,41 @@ export async function AppNav() {
             Add word
           </Link>
           {session?.user ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-md bg-white px-2 py-1 shadow-sm ring-1 ring-slate-200">
-              <span className="max-w-44 truncate px-2 text-sm font-medium text-slate-600">
-                {userLabel}
-              </span>
-              <form action={signOutCurrentUser}>
-                <button
-                  type="submit"
-                  className="rounded px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Log out
-                </button>
-              </form>
-            </div>
+            <details className="group relative">
+              <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
+                <span className="max-w-40 truncate">{userLabel}</span>
+                <span className="text-xs text-slate-400 transition group-open:rotate-180">
+                  v
+                </span>
+              </summary>
+              <div className="absolute right-0 mt-2 w-64 overflow-hidden rounded-md bg-white shadow-lg ring-1 ring-slate-200">
+                <div className="border-b border-slate-100 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Signed in as
+                  </p>
+                  <p className="mt-1 truncate text-sm font-semibold text-slate-800">
+                    {userLabel}
+                  </p>
+                </div>
+                <div className="grid p-1">
+                  <AccountMenuLink href="/settings">Settings</AccountMenuLink>
+                  <AccountMenuLink href="/vocabulary/import">
+                    Import vocabulary
+                  </AccountMenuLink>
+                  <AccountMenuLink href="/api/vocabulary/export">
+                    Export my vocabulary
+                  </AccountMenuLink>
+                  <form action={signOutCurrentUser}>
+                    <button
+                      type="submit"
+                      className="w-full rounded px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Log out
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </details>
           ) : (
             <Link
               href="/login"
@@ -50,5 +73,22 @@ export async function AppNav() {
         </nav>
       </div>
     </header>
+  );
+}
+
+function AccountMenuLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+    >
+      {children}
+    </Link>
   );
 }

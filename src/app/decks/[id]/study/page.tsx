@@ -4,6 +4,7 @@ import { DeckStudyCards } from "@/components/deck-study-cards";
 import { EmptyState } from "@/components/empty-state";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
+import { getStudyPreferences } from "@/lib/study-preferences";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ export default async function DeckStudyPage({
 }: DeckStudyPageProps) {
   const user = await getCurrentUser();
   const userId = user?.id ?? null;
+  const preferences = await getStudyPreferences(userId);
   const { id } = await params;
   const { mode } = await searchParams;
   const dueOnly = mode === "due";
@@ -60,6 +62,7 @@ export default async function DeckStudyPage({
         orderBy: {
           createdAt: "asc",
         },
+        take: preferences.deckStudySessionSize,
       },
     },
   });
@@ -149,9 +152,15 @@ export default async function DeckStudyPage({
               }
               actionLabel={dueOnly ? "Study all cards" : "Back to deck"}
               secondaryHref={
-                dueOnly ? `/decks/${deck.id}` : user ? `/vocabulary/new?deckId=${deck.id}` : "/login"
+                dueOnly
+                  ? `/decks/${deck.id}`
+                  : user
+                    ? `/vocabulary/new?deckId=${deck.id}`
+                    : "/login"
               }
-              secondaryLabel={dueOnly ? "Back to deck" : user ? "Add vocabulary" : "Log in to add"}
+              secondaryLabel={
+                dueOnly ? "Back to deck" : user ? "Add vocabulary" : "Log in to add"
+              }
             >
               {dueOnly
                 ? "No cards are due right now. Study all cards if you want extra practice, or come back later."
@@ -165,6 +174,7 @@ export default async function DeckStudyPage({
             deckName={deck.name}
             dueOnly={dueOnly}
             canSaveProgress={Boolean(user)}
+            showMemoryAid={preferences.showMemoryAidOnReveal}
           />
         )}
       </div>

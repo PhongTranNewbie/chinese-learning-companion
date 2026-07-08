@@ -3,12 +3,14 @@ import { EmptyState } from "@/components/empty-state";
 import { ReviewSessionCards } from "@/components/review-session-cards";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
+import { getStudyPreferences } from "@/lib/study-preferences";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReviewPage() {
   const user = await getCurrentUser();
   const userId = user?.id ?? null;
+  const preferences = await getStudyPreferences(userId);
   const now = new Date();
   const dueCards = await prisma.reviewCard.findMany({
     where: {
@@ -37,6 +39,7 @@ export default async function ReviewPage() {
     orderBy: {
       dueAt: "asc",
     },
+    take: preferences.reviewSessionSize,
   });
   const cards = dueCards.map((card) => ({
     id: card.id,
@@ -100,7 +103,11 @@ export default async function ReviewPage() {
             </EmptyState>
           </div>
         ) : (
-          <ReviewSessionCards cards={cards} canSaveProgress={Boolean(user)} />
+          <ReviewSessionCards
+            cards={cards}
+            canSaveProgress={Boolean(user)}
+            showMemoryAid={preferences.showMemoryAidOnReveal}
+          />
         )}
       </div>
     </main>

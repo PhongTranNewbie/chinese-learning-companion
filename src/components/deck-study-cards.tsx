@@ -58,12 +58,14 @@ export function DeckStudyCards({
   deckName,
   dueOnly,
   canSaveProgress,
+  showMemoryAid,
 }: {
   cards: StudyCard[];
   deckId: string;
   deckName: string;
   dueOnly: boolean;
   canSaveProgress: boolean;
+  showMemoryAid: boolean;
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -212,7 +214,7 @@ export function DeckStudyCards({
               </section>
             ) : null}
 
-            {memoryItems.length > 0 ? (
+            {showMemoryAid && memoryItems.length > 0 ? (
               <section className="rounded-md bg-white p-4 ring-1 ring-slate-100 sm:p-5">
                 <p className="text-sm font-semibold text-teal-700">
                   How to remember
