@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, isGoogleAuthConfigured } from "@/auth";
+import { EmailAuthForms } from "@/components/email-auth-forms";
 import { signInWithGoogle } from "@/lib/auth-actions";
 
 type LoginPageProps = {
@@ -21,7 +22,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main className="bg-slate-50">
-      <div className="mx-auto flex min-h-[calc(100vh-96px)] max-w-3xl items-center px-5 py-10 sm:px-6">
+      <div className="mx-auto flex min-h-[calc(100vh-96px)] max-w-5xl items-center px-5 py-10 sm:px-6">
         <section className="w-full overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-slate-100">
           <div className="bg-gradient-to-br from-teal-50 to-white px-6 py-8 sm:px-8">
             <p className="text-sm font-semibold text-teal-700">Member access</p>
@@ -44,15 +45,24 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </div>
             ) : null}
 
-            <form action={signInWithGoogle}>
-              <button
-                type="submit"
-                disabled={!isGoogleAuthConfigured}
-                className="inline-flex w-full items-center justify-center rounded-md bg-teal-700 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 sm:w-auto"
-              >
-                Continue with Google
-              </button>
-            </form>
+            <div className="rounded-md bg-slate-50 p-4 ring-1 ring-slate-100">
+              <p className="text-sm font-semibold text-slate-700">
+                Quick sign in
+              </p>
+              <form action={signInWithGoogle} className="mt-3">
+                <button
+                  type="submit"
+                  disabled={!isGoogleAuthConfigured}
+                  className="inline-flex w-full items-center justify-center rounded-md bg-teal-700 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 sm:w-auto"
+                >
+                  Continue with Google
+                </button>
+              </form>
+            </div>
+
+            <div className="mt-5">
+              <EmailAuthForms />
+            </div>
 
             <div className="mt-5 border-t border-slate-100 pt-5">
               <Link
