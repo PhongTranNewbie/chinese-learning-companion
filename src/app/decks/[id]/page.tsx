@@ -4,7 +4,7 @@ import type { ReviewCard } from "@prisma/client";
 import { EmptyState } from "@/components/empty-state";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { shouldShowDeckStudyActions } from "@/lib/archive-rules";
-import { archiveDeck } from "@/lib/decks";
+import { archiveDeck, copyPublicDeckToLibrary } from "@/lib/decks";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import { formatPinyinForDisplay } from "@/lib/pinyin-display";
@@ -19,12 +19,11 @@ type DeckDetailPageProps = {
 
 export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
   const user = await getCurrentUser();
-  const userId = user?.id ?? null;
   const { id } = await params;
   const deck = await prisma.deck.findFirst({
     where: {
       id,
-      userId,
+      OR: user ? [{ userId: user.id }, { userId: null }] : [{ userId: null }],
     },
     include: {
       vocabularyItems: {
@@ -45,7 +44,22 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
   if (!deck) {
     notFound();
   }
+
+  const isPublicDeck = deck.userId === null;
+  const ownedCopy =
+    user && isPublicDeck
+      ? await prisma.deck.findFirst({
+          where: {
+            userId: user.id,
+            name: deck.name,
+          },
+          select: {
+            id: true,
+          },
+        })
+      : null;
   const showStudyActions = shouldShowDeckStudyActions(deck);
+  const canMutateDeck = Boolean(user && !isPublicDeck);
   const now = new Date();
   const activeWordCount = deck.vocabularyItems.length;
   const dueWordCount = deck.vocabularyItems.filter(
@@ -69,6 +83,11 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
                 <h1 className="text-3xl font-semibold text-slate-950 sm:text-4xl">
                   {deck.name}
                 </h1>
+                {isPublicDeck ? (
+                  <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-medium text-teal-700 ring-1 ring-teal-100">
+                    Starter deck
+                  </span>
+                ) : null}
                 {deck.isArchived ? (
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
                     Archived
@@ -91,15 +110,44 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
               </div>
             </div>
             <div className="flex flex-wrap gap-3 lg:justify-end">
-              {showStudyActions ? (
-                <>
+              {isPublicDeck && !deck.isArchived ? (
+                user ? (
+                  ownedCopy ? (
+                    <Link
+                      href={`/decks/${ownedCopy.id}`}
+                      className="rounded-md border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-800 transition hover:bg-teal-100"
+                    >
+                      Already in your library
+                    </Link>
+                  ) : (
+                    <form action={copyPublicDeckToLibrary.bind(null, deck.id)}>
+                      <PendingSubmitButton
+                        idleLabel="Copy to my library"
+                        pendingLabel="Copying..."
+                        className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
+                      />
+                    </form>
+                  )
+                ) : (
                   <Link
-                    href={`/decks/${deck.id}/study`}
+                    href="/login"
                     className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
                   >
-                    Study deck
+                    Sign in to copy this deck
                   </Link>
-                  {user ? (
+                )
+              ) : null}
+              {showStudyActions ? (
+                <>
+                  {!user || !isPublicDeck ? (
+                    <Link
+                      href={`/decks/${deck.id}/study`}
+                      className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
+                    >
+                      Study deck
+                    </Link>
+                  ) : null}
+                  {canMutateDeck ? (
                     <Link
                       href={`/vocabulary/new?deckId=${deck.id}`}
                       className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -107,7 +155,7 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
                       Add vocabulary
                     </Link>
                   ) : null}
-                  {user ? (
+                  {canMutateDeck ? (
                     <Link
                       href={`/vocabulary/import?deckId=${deck.id}`}
                       className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -117,7 +165,7 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
                   ) : null}
                 </>
               ) : null}
-              {user ? (
+              {canMutateDeck ? (
                 <Link
                   href={`/api/vocabulary/export?deckId=${deck.id}`}
                   className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -125,7 +173,7 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
                   Export CSV
                 </Link>
               ) : null}
-              {user ? (
+              {canMutateDeck ? (
                 <Link
                   href={`/decks/${deck.id}/edit`}
                   className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -133,7 +181,7 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
                   Edit
                 </Link>
               ) : null}
-              {user && !deck.isArchived ? (
+              {canMutateDeck && !deck.isArchived ? (
                 <form action={archiveDeck.bind(null, deck.id)}>
                   <PendingSubmitButton
                     idleLabel="Archive"
@@ -151,14 +199,28 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
             <EmptyState
               icon="词"
               title="No active vocabulary in this deck"
-              actionHref={user && !deck.isArchived ? `/vocabulary/new?deckId=${deck.id}` : undefined}
-              actionLabel={user && !deck.isArchived ? "Add vocabulary" : undefined}
-              secondaryHref={user && !deck.isArchived ? `/vocabulary/import?deckId=${deck.id}` : undefined}
-              secondaryLabel={user && !deck.isArchived ? "Import CSV" : undefined}
+              actionHref={
+                canMutateDeck && !deck.isArchived
+                  ? `/vocabulary/new?deckId=${deck.id}`
+                  : undefined
+              }
+              actionLabel={
+                canMutateDeck && !deck.isArchived ? "Add vocabulary" : undefined
+              }
+              secondaryHref={
+                canMutateDeck && !deck.isArchived
+                  ? `/vocabulary/import?deckId=${deck.id}`
+                  : undefined
+              }
+              secondaryLabel={
+                canMutateDeck && !deck.isArchived ? "Import CSV" : undefined
+              }
             >
               {deck.isArchived
                 ? "This archived deck has no active vocabulary to study."
-                : "Add or import words to turn this deck into a focused study set."}
+                : isPublicDeck
+                  ? "Copy this starter deck to add your own review progress."
+                  : "Add or import words to turn this deck into a focused study set."}
             </EmptyState>
           </div>
         ) : (
