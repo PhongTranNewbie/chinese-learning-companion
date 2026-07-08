@@ -1,14 +1,45 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { requireCurrentUser } from "@/lib/current-user";
+import { getCurrentUser, requireCurrentUser } from "@/lib/current-user";
+import {
+  appearanceThemeCookieName,
+  parseAppearanceTheme,
+} from "@/lib/appearance";
 import { prisma } from "@/lib/db";
 import {
   clampPreferenceNumber,
   defaultStudyPreferences,
 } from "@/lib/study-preferences";
 
+
+async function getRedirectTarget(fallback = "/settings") {
+  const headerStore = await headers();
+  const referer = headerStore.get("referer");
+
+  if (!referer) {
+    return fallback;
+  }
+
+  try {
+    const url = new URL(referer);
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return fallback;
+  }
+}
+
+async function setAppearanceCookie(theme: string) {
+  const cookieStore = await cookies();
+  cookieStore.set(appearanceThemeCookieName, theme, {
+    httpOnly: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+}
 function readString(formData: FormData, field: string) {
   const value = formData.get(field);
   return typeof value === "string" ? value.trim() : "";
@@ -71,4 +102,31 @@ export async function updateStudyPreferences(formData: FormData) {
   revalidatePath("/review");
   revalidatePath("/decks/[id]/study", "page");
   redirect("/settings?preferences=updated");
+}
+export async function updateAppearanceTheme(formData: FormData) {
+  const theme = parseAppearanceTheme(readString(formData, "appearanceTheme"));
+  const user = await getCurrentUser();
+
+  await setAppearanceCookie(theme);
+
+  if (user) {
+    await prisma.userStudyPreference.upsert({
+      where: {
+        userId: user.id,
+      },
+      create: {
+        userId: user.id,
+        ...defaultStudyPreferences,
+        appearanceTheme: theme,
+      },
+      update: {
+        appearanceTheme: theme,
+      },
+    });
+
+    revalidatePath("/settings");
+  }
+
+  revalidatePath("/", "layout");
+  redirect(await getRedirectTarget(user ? "/settings?appearance=updated" : "/"));
 }

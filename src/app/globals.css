@@ -21,3 +21,126 @@ select,
 textarea {
   outline-offset: 2px;
 }
+
+.dark {
+  --background: #0f172a;
+  --foreground: #e5edf5;
+  color-scheme: dark;
+}
+
+.dark body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.dark .bg-white,
+.dark .bg-slate-50 {
+  background-color: #111827 !important;
+}
+
+.dark .bg-slate-100 {
+  background-color: #1f2937 !important;
+}
+
+.dark .bg-teal-50 {
+  background-color: #123b38 !important;
+}
+
+.dark .bg-amber-50 {
+  background-color: #422f12 !important;
+}
+
+.dark .bg-emerald-50 {
+  background-color: #113f32 !important;
+}
+
+.dark .bg-gradient-to-br {
+  background-image: linear-gradient(to bottom right, #123b38, #111827) !important;
+}
+
+.dark .text-slate-950,
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: #e5edf5 !important;
+}
+
+.dark .text-slate-600,
+.dark .text-slate-500,
+.dark .text-slate-400 {
+  color: #aebccd !important;
+}
+
+.dark .text-teal-950,
+.dark .text-teal-900,
+.dark .text-teal-800,
+.dark .text-teal-700 {
+  color: #7dd3c7 !important;
+}
+
+.dark .text-amber-950,
+.dark .text-amber-900 {
+  color: #f8d48a !important;
+}
+
+.dark .text-emerald-950 {
+  color: #9fe7c4 !important;
+}
+
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-300,
+.dark .border-teal-200,
+.dark .border-amber-200,
+.dark .border-emerald-200 {
+  border-color: #334155 !important;
+}
+
+.dark .ring-slate-100,
+.dark .ring-slate-200,
+.dark .ring-teal-100,
+.dark .ring-amber-100,
+.dark .ring-emerald-100 {
+  --tw-ring-color: #334155 !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #0f172a !important;
+  border-color: #475569 !important;
+  color: #e5edf5 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+.dark mark {
+  background-color: #134e4a !important;
+  color: #99f6e4 !important;
+}
+
+.dark .shadow-sm,
+.dark .shadow-md,
+.dark .shadow-lg {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.35) !important;
+}
+
+.dark .hover\:bg-slate-50:hover {
+  background-color: #1f2937 !important;
+}
+
+.dark .hover\:bg-teal-50:hover,
+.dark .hover\:bg-teal-100:hover {
+  background-color: #134e4a !important;
+}
+
+.dark .hover\:bg-amber-100:hover {
+  background-color: #5c4217 !important;
+}
+
+.dark .hover\:bg-emerald-100:hover {
+  background-color: #14533f !important;
+}

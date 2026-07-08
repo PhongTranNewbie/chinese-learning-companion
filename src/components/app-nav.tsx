@@ -1,12 +1,28 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { signOutCurrentUser } from "@/lib/auth-actions";
+import {
+  appearanceThemeCookieName,
+  getAppearanceThemeLabel,
+  parseAppearanceTheme,
+  type AppearanceTheme,
+} from "@/lib/appearance";
+import { updateAppearanceTheme } from "@/lib/settings";
+import { prisma } from "@/lib/db";
 import { NavLinks } from "@/components/nav-links";
 
 export async function AppNav() {
-  const session = await auth();
+  const [session, cookieStore] = await Promise.all([auth(), cookies()]);
   const userLabel = session?.user?.name ?? session?.user?.email ?? "Member";
+  const cookieTheme = parseAppearanceTheme(
+    cookieStore.get(appearanceThemeCookieName)?.value,
+  );
+  const memberTheme = session?.user?.id
+    ? await getMemberAppearanceTheme(session.user.id)
+    : null;
+  const appearanceTheme = memberTheme ?? cookieTheme;
 
   return (
     <header className="sticky top-0 z-10 border-b border-slate-200 bg-slate-50/95 backdrop-blur">
@@ -26,6 +42,7 @@ export async function AppNav() {
           >
             Add word
           </Link>
+          <AppearanceMenu currentTheme={appearanceTheme} />
           {session?.user ? (
             <details className="group relative">
               <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
@@ -76,6 +93,19 @@ export async function AppNav() {
   );
 }
 
+
+async function getMemberAppearanceTheme(userId: string) {
+  const preferences = await prisma.userStudyPreference.findUnique({
+    where: {
+      userId,
+    },
+    select: {
+      appearanceTheme: true,
+    },
+  });
+
+  return preferences ? parseAppearanceTheme(preferences.appearanceTheme) : null;
+}
 function AccountMenuLink({
   href,
   children,
@@ -90,5 +120,47 @@ function AccountMenuLink({
     >
       {children}
     </Link>
+  );
+}
+
+function AppearanceMenu({ currentTheme }: { currentTheme: AppearanceTheme }) {
+  return (
+    <details className="group relative">
+      <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
+        <span>{getAppearanceThemeLabel(currentTheme)}</span>
+        <span className="text-xs text-slate-400 transition group-open:rotate-180">
+          v
+        </span>
+      </summary>
+      <form
+        action={updateAppearanceTheme}
+        className="absolute right-0 mt-2 grid w-44 gap-1 rounded-md bg-white p-1 shadow-lg ring-1 ring-slate-200"
+      >
+        <ThemeButton value="light" currentTheme={currentTheme} />
+        <ThemeButton value="dark" currentTheme={currentTheme} />
+        <ThemeButton value="system" currentTheme={currentTheme} />
+      </form>
+    </details>
+  );
+}
+
+function ThemeButton({
+  value,
+  currentTheme,
+}: {
+  value: AppearanceTheme;
+  currentTheme: AppearanceTheme;
+}) {
+  return (
+    <button
+      type="submit"
+      name="appearanceTheme"
+      value={value}
+      className={`rounded px-3 py-2 text-left text-sm font-semibold transition hover:bg-slate-50 ${
+        currentTheme === value ? "bg-teal-50 text-teal-800" : "text-slate-700"
+      }`}
+    >
+      {getAppearanceThemeLabel(value)}
+    </button>
   );
 }

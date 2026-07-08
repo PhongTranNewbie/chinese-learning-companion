@@ -33,6 +33,7 @@ model UserStudyPreference {
   reviewSessionSize     Int      @default(10)
   deckStudySessionSize  Int      @default(12)
   showMemoryAidOnReveal Boolean  @default(true)
+  appearanceTheme       String   @default("system")
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }

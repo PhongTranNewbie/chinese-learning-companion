@@ -2,8 +2,16 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import {
+  appearanceThemes,
+  getAppearanceThemeLabel,
+} from "@/lib/appearance";
 import { prisma } from "@/lib/db";
-import { updateDisplayName, updateStudyPreferences } from "@/lib/settings";
+import {
+  updateAppearanceTheme,
+  updateDisplayName,
+  updateStudyPreferences,
+} from "@/lib/settings";
 import { getStudyPreferences } from "@/lib/study-preferences";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +20,7 @@ type SettingsPageProps = {
   searchParams: Promise<{
     profile?: string;
     preferences?: string;
+    appearance?: string;
   }>;
 };
 
@@ -78,6 +87,9 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           {params.profile === "updated" ? (
             <StatusMessage>Display name updated.</StatusMessage>
           ) : null}
+          {params.appearance === "updated" ? (
+            <StatusMessage>Appearance updated.</StatusMessage>
+          ) : null}
           {params.preferences === "updated" ? (
             <StatusMessage>Study preferences saved.</StatusMessage>
           ) : null}
@@ -118,6 +130,49 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             </form>
           </section>
 
+          <section className="rounded-md bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
+            <h2 className="text-xl font-semibold text-slate-950">
+              Appearance
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Choose a calm light theme, a soft dark theme, or follow your
+              device setting.
+            </p>
+            <form action={updateAppearanceTheme} className="mt-5 grid gap-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                {appearanceThemes.map((theme) => (
+                  <label
+                    key={theme}
+                    className="flex cursor-pointer items-start gap-3 rounded-md bg-slate-50 p-4 ring-1 ring-slate-100 transition hover:bg-teal-50"
+                  >
+                    <input
+                      type="radio"
+                      name="appearanceTheme"
+                      value={theme}
+                      defaultChecked={preferences.appearanceTheme === theme}
+                      className="mt-1 h-4 w-4 border-slate-300 text-teal-700 focus:ring-teal-600"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-800">
+                        {getAppearanceThemeLabel(theme)}
+                      </span>
+                      <span className="mt-1 block text-sm leading-6 text-slate-600">
+                        {getAppearanceDescription(theme)}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <div>
+                <button
+                  type="submit"
+                  className="inline-flex min-h-11 items-center justify-center rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
+                >
+                  Save appearance
+                </button>
+              </div>
+            </form>
+          </section>
           <section className="rounded-md bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
             <h2 className="text-xl font-semibold text-slate-950">
               Study preferences
@@ -244,6 +299,18 @@ function StatusMessage({ children }: { children: ReactNode }) {
   );
 }
 
+
+function getAppearanceDescription(theme: "light" | "dark" | "system") {
+  if (theme === "light") {
+    return "Use the bright default study surface.";
+  }
+
+  if (theme === "dark") {
+    return "Use a soft dark surface for low-light study.";
+  }
+
+  return "Follow your device appearance setting.";
+}
 function formatProvider(provider: string) {
   if (provider === "google") {
     return "Google";

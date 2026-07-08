@@ -1,3 +1,4 @@
+import type { AppearanceTheme } from "@/lib/appearance";
 import { prisma } from "@/lib/db";
 
 export const defaultStudyPreferences = {
@@ -5,6 +6,7 @@ export const defaultStudyPreferences = {
   reviewSessionSize: 10,
   deckStudySessionSize: 12,
   showMemoryAidOnReveal: true,
+  appearanceTheme: "system" as AppearanceTheme,
 };
 
 export type StudyPreferences = typeof defaultStudyPreferences;
@@ -23,6 +25,7 @@ export async function getStudyPreferences(userId: string | null) {
       reviewSessionSize: true,
       deckStudySessionSize: true,
       showMemoryAidOnReveal: true,
+      appearanceTheme: true,
     },
   });
 
