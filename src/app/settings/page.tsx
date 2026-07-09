@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { ChangePasswordForm } from "@/components/change-password-form";
 import {
   appearanceThemes,
   getAppearanceThemeLabel,
@@ -128,6 +129,24 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 </button>
               </div>
             </form>
+          </section>
+
+          <section className="rounded-md bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
+            <h2 className="text-xl font-semibold text-slate-950">
+              Change password
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Update the password used for email sign-in. Google sign-in stays
+              unchanged.
+            </p>
+            {user.passwordHash ? (
+              <ChangePasswordForm />
+            ) : (
+              <div className="mt-5 rounded-md bg-slate-50 p-4 text-sm leading-6 text-slate-600 ring-1 ring-slate-100">
+                This account uses Google sign-in. Password change is not
+                available.
+              </div>
+            )}
           </section>
 
           <section className="rounded-md bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
