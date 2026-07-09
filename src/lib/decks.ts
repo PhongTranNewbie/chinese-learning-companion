@@ -89,6 +89,105 @@ export async function archiveDeck(deckId: string) {
   redirect("/decks");
 }
 
+export async function resetDeckReviewProgress(
+  deckId: string,
+  formData: FormData,
+) {
+  const user = await requireCurrentUser();
+  const confirmed = formData.get("confirmReset") === "on";
+
+  if (!confirmed) {
+    redirect(`/decks/${deckId}`);
+  }
+
+  const deck = await prisma.deck.findFirst({
+    where: {
+      id: deckId,
+      userId: user.id,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!deck) {
+    redirect("/decks");
+  }
+
+  const now = new Date();
+
+  await prisma.$transaction(async (tx) => {
+    const vocabularyItems = await tx.vocabularyItem.findMany({
+      where: {
+        deckId,
+        userId: user.id,
+        isArchived: false,
+      },
+      select: {
+        id: true,
+        reviewCard: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    const reviewCardIds = vocabularyItems
+      .map((item) => item.reviewCard?.id)
+      .filter((id): id is string => Boolean(id));
+
+    if (reviewCardIds.length > 0) {
+      await tx.reviewEvent.deleteMany({
+        where: {
+          reviewCardId: {
+            in: reviewCardIds,
+          },
+        },
+      });
+
+      await tx.reviewCard.updateMany({
+        where: {
+          id: {
+            in: reviewCardIds,
+          },
+          vocabularyItem: {
+            deckId,
+            userId: user.id,
+            isArchived: false,
+          },
+        },
+        data: {
+          dueAt: now,
+          intervalDays: 0,
+          easeFactor: 2.5,
+          reviewCount: 0,
+          lapseCount: 0,
+          lastReviewedAt: null,
+          status: "ACTIVE",
+        },
+      });
+    }
+
+    const vocabularyWithoutCards = vocabularyItems.filter(
+      (item) => !item.reviewCard,
+    );
+
+    if (vocabularyWithoutCards.length > 0) {
+      await tx.reviewCard.createMany({
+        data: vocabularyWithoutCards.map((item) => ({
+          vocabularyItemId: item.id,
+          dueAt: now,
+        })),
+      });
+    }
+  });
+
+  revalidatePath("/review");
+  revalidatePath(`/decks/${deckId}`);
+  revalidatePath(`/decks/${deckId}/study`);
+  redirect(`/decks/${deckId}?progress=reset`);
+}
 export async function copyPublicDeckToLibrary(publicDeckId: string) {
   const user = await requireCurrentUser();
 

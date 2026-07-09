@@ -4,7 +4,11 @@ import type { ReviewCard } from "@prisma/client";
 import { EmptyState } from "@/components/empty-state";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { shouldShowDeckStudyActions } from "@/lib/archive-rules";
-import { archiveDeck, copyPublicDeckToLibrary } from "@/lib/decks";
+import {
+  archiveDeck,
+  copyPublicDeckToLibrary,
+  resetDeckReviewProgress,
+} from "@/lib/decks";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import { formatPinyinForDisplay } from "@/lib/pinyin-display";
@@ -15,11 +19,17 @@ type DeckDetailPageProps = {
   params: Promise<{
     id: string;
   }>;
+  searchParams: Promise<{
+    progress?: string;
+  }>;
 };
 
-export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
+export default async function DeckDetailPage({
+  params,
+  searchParams,
+}: DeckDetailPageProps) {
   const user = await getCurrentUser();
-  const { id } = await params;
+  const [{ id }, query] = await Promise.all([params, searchParams]);
   const deck = await prisma.deck.findFirst({
     where: {
       id,
@@ -60,6 +70,7 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
       : null;
   const showStudyActions = shouldShowDeckStudyActions(deck);
   const canMutateDeck = Boolean(user && !isPublicDeck);
+  const showResetProgress = canMutateDeck && !deck.isArchived;
   const now = new Date();
   const activeWordCount = deck.vocabularyItems.length;
   const dueWordCount = deck.vocabularyItems.filter(
@@ -194,6 +205,12 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
           </div>
         </div>
 
+        {query.progress === "reset" ? (
+          <div className="mt-5 rounded-md bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-950 ring-1 ring-teal-100">
+            Review progress reset. These words are ready to study again.
+          </div>
+        ) : null}
+
         {deck.vocabularyItems.length === 0 ? (
           <div className="mt-8">
             <EmptyState
@@ -274,6 +291,42 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
             </table>
           </div>
         )}
+
+        {showResetProgress ? (
+          <section className="mt-8 rounded-md bg-white p-5 shadow-sm ring-1 ring-red-100 sm:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-950">
+                  Reset review progress
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                  This keeps your words, examples, memory aids, and character
+                  notes, but resets review timing for this deck so every card is
+                  ready to study again.
+                </p>
+              </div>
+              <form
+                action={resetDeckReviewProgress.bind(null, deck.id)}
+                className="grid gap-3 rounded-md bg-red-50 p-4 ring-1 ring-red-100 lg:min-w-80"
+              >
+                <label className="flex items-start gap-3 text-sm leading-6 text-red-950">
+                  <input
+                    type="checkbox"
+                    name="confirmReset"
+                    required
+                    className="mt-1 h-4 w-4 rounded border-red-300 text-red-700 focus:ring-red-600"
+                  />
+                  <span>I understand this resets review progress for this deck.</span>
+                </label>
+                <PendingSubmitButton
+                  idleLabel="Reset progress"
+                  pendingLabel="Resetting..."
+                  className="inline-flex min-h-11 items-center justify-center rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+                />
+              </form>
+            </div>
+          </section>
+        ) : null}
       </div>
     </main>
   );
