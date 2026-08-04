@@ -36,9 +36,6 @@ export default async function RootLayout({
       data-theme={theme}
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
       <body>
         <AppNav />
         {children}
@@ -62,22 +59,3 @@ async function getMemberAppearanceTheme(userId: string) {
     : (null as AppearanceTheme | null);
 }
 
-const themeScript = `
-(function () {
-  var cookieName = "${appearanceThemeCookieName}";
-  var match = document.cookie.match(new RegExp("(?:^|; )" + cookieName + "=([^;]*)"));
-  var theme = document.documentElement.dataset.theme || (match ? decodeURIComponent(match[1]) : "system");
-  var systemQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-  function apply() {
-    var resolved = theme === "system" ? (systemQuery.matches ? "dark" : "light") : theme;
-    document.documentElement.classList.toggle("dark", resolved === "dark");
-    document.documentElement.dataset.theme = theme;
-  }
-
-  apply();
-  if (systemQuery.addEventListener) {
-    systemQuery.addEventListener("change", apply);
-  }
-})();
-`;

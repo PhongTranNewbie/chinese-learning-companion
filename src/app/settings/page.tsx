@@ -113,8 +113,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   ].filter(Boolean);
 
   return (
-    <main className="bg-slate-50">
-      <div className="mx-auto max-w-4xl px-5 py-6 sm:px-6 sm:py-8">
+    <main className="min-h-[calc(100vh-73px)] bg-slate-50 dark:bg-slate-900">
+      <div className="mx-auto max-w-6xl px-5 py-6 sm:px-6 sm:py-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-teal-700">Account</p>
@@ -405,8 +405,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               <ChangePasswordForm />
             ) : (
               <div className="mt-5 rounded-md bg-slate-50 p-4 text-sm leading-6 text-slate-600 ring-1 ring-slate-100">
-                This account uses Google sign-in. Password change is not
-                available.
+                This account uses OAuth sign-in. Password change is not
+                available for provider-only accounts.
               </div>
             )}
           </section>

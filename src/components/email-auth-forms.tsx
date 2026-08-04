@@ -9,11 +9,11 @@ import {
 
 const initialState: EmailAuthState = {};
 const fieldClass =
-  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100";
+  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100 dark:focus:border-teal-400 dark:focus:ring-teal-900";
 const primaryButtonClass =
-  "inline-flex min-h-11 w-full items-center justify-center rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-400";
+  "inline-flex min-h-11 w-full items-center justify-center rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-400 dark:bg-teal-600 dark:hover:bg-teal-500 dark:disabled:bg-slate-600";
 const secondaryButtonClass =
-  "inline-flex min-h-11 w-full items-center justify-center rounded-md border border-teal-200 bg-white px-4 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-11 w-full items-center justify-center rounded-md border border-teal-200 bg-white px-4 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-teal-700 dark:bg-slate-800 dark:text-teal-200 dark:hover:bg-teal-950";
 
 export function EmailAuthForms() {
   const [signInState, signInAction, isSignInPending] = useActionState(
@@ -29,20 +29,20 @@ export function EmailAuthForms() {
     <div className="grid gap-5 lg:grid-cols-2">
       <form
         action={signInAction}
-        className="rounded-md bg-slate-50 p-4 ring-1 ring-slate-100"
+        className="rounded-md bg-slate-50 p-4 ring-1 ring-slate-100 dark:bg-slate-800 dark:ring-slate-700"
       >
         <div>
-          <h2 className="text-base font-semibold text-slate-950">
+          <h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">
             Sign in with email
           </h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600">
+          <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
             Continue with a password account and keep your private study data.
           </p>
         </div>
 
         {signInState.error ? (
           <p
-            className="mt-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-rose-100"
+            className="mt-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-rose-100 dark:bg-rose-950 dark:text-rose-100 dark:ring-rose-900"
             role="alert"
           >
             {signInState.error}
@@ -51,7 +51,7 @@ export function EmailAuthForms() {
 
         <div className="mt-4 space-y-4">
           <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-700">Email</span>
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Email</span>
             <input
               name="email"
               type="email"
@@ -63,7 +63,7 @@ export function EmailAuthForms() {
           </label>
 
           <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-700">Password</span>
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Password</span>
             <input
               name="password"
               type="password"
@@ -85,20 +85,20 @@ export function EmailAuthForms() {
 
       <form
         action={registerAction}
-        className="rounded-md bg-white p-4 ring-1 ring-slate-200"
+        className="rounded-md bg-white p-4 ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700"
       >
         <div>
-          <h2 className="text-base font-semibold text-slate-950">
+          <h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">
             Create an account
           </h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600">
+          <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
             Start saving your own vocabulary, decks, and review history.
           </p>
         </div>
 
         {registerState.error ? (
           <p
-            className="mt-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-rose-100"
+            className="mt-4 rounded-md bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-rose-100 dark:bg-rose-950 dark:text-rose-100 dark:ring-rose-900"
             role="alert"
           >
             {registerState.error}
@@ -107,7 +107,7 @@ export function EmailAuthForms() {
 
         <div className="mt-4 space-y-4">
           <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-700">Name</span>
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Name</span>
             <input
               name="name"
               type="text"
@@ -118,7 +118,7 @@ export function EmailAuthForms() {
           </label>
 
           <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-700">Email</span>
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Email</span>
             <input
               name="email"
               type="email"
@@ -130,7 +130,7 @@ export function EmailAuthForms() {
           </label>
 
           <label className="block space-y-2">
-            <span className="text-sm font-medium text-slate-700">Password</span>
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Password</span>
             <input
               name="password"
               type="password"
@@ -140,7 +140,7 @@ export function EmailAuthForms() {
               required
               className={fieldClass}
             />
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               Use at least 8 characters.
             </span>
           </label>

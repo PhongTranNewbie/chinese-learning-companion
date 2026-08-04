@@ -26,8 +26,8 @@ export function NavLinks() {
             href={item.href}
             className={`rounded-md px-3 py-2 text-sm font-medium transition ${
               isActive
-                ? "bg-slate-950 text-white"
-                : "text-slate-700 hover:bg-white hover:text-slate-950"
+                ? "bg-teal-700 text-white dark:bg-teal-600"
+                : "text-slate-700 hover:bg-teal-50 hover:text-teal-900 dark:text-slate-200 dark:hover:bg-teal-950/60 dark:hover:text-teal-100"
             }`}
           >
             {item.label}
@@ -37,3 +37,4 @@ export function NavLinks() {
     </>
   );
 }
+

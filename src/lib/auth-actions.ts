@@ -2,7 +2,12 @@
 
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
-import { isGoogleAuthConfigured, signIn, signOut } from "@/auth";
+import {
+  isFacebookAuthConfigured,
+  isGoogleAuthConfigured,
+  signIn,
+  signOut,
+} from "@/auth";
 import { prisma } from "@/lib/db";
 import {
   hashPassword,
@@ -43,6 +48,16 @@ export async function signInWithGoogle() {
   }
 
   await signIn("google", {
+    redirectTo: "/",
+  });
+}
+
+export async function signInWithFacebook() {
+  if (!isFacebookAuthConfigured) {
+    redirect("/login?error=missing-facebook-config");
+  }
+
+  await signIn("facebook", {
     redirectTo: "/",
   });
 }

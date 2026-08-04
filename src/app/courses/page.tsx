@@ -72,7 +72,7 @@ export default async function CoursesPage({ searchParams }: CoursesPageProps) {
   const lastResult = Math.min(skip + courses.length, totalCount);
 
   return (
-    <main className="bg-slate-50">
+    <main className="min-h-[calc(100vh-73px)] bg-slate-50 dark:bg-slate-900">
       <div className="mx-auto max-w-6xl px-5 py-6 sm:px-6 sm:py-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>

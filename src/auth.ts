@@ -1,5 +1,6 @@
 import NextAuth, { type DefaultSession } from "next-auth";
 import Google from "next-auth/providers/google";
+import Facebook from "next-auth/providers/facebook";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db";
@@ -9,10 +10,25 @@ export const isGoogleAuthConfigured = Boolean(
   process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET,
 );
 
+export const isFacebookAuthConfigured = Boolean(
+  process.env.AUTH_FACEBOOK_ID && process.env.AUTH_FACEBOOK_SECRET,
+);
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
     ...(isGoogleAuthConfigured ? [Google] : []),
+    ...(isFacebookAuthConfigured
+      ? [
+          Facebook({
+            authorization: {
+              params: {
+                scope: "public_profile",
+              },
+            },
+          }),
+        ]
+      : []),
     Credentials({
       credentials: {
         email: { label: "Email", type: "email" },
