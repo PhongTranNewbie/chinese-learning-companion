@@ -10,7 +10,7 @@ export async function getDashboardData(now = new Date()) {
     activeVocabularyCount,
     archivedVocabularyCount,
     dueReviewCount,
-    reviewsCompletedToday,
+    reviewedCardsToday,
     recentReviewEvents,
     upcomingDueReviews,
     levelBreakdown,
@@ -39,7 +39,8 @@ export async function getDashboardData(now = new Date()) {
         },
       },
     }),
-    prisma.reviewEvent.count({
+    prisma.reviewEvent.groupBy({
+      by: ["reviewCardId"],
       where: {
         reviewedAt: {
           gte: startOfToday,
@@ -117,7 +118,7 @@ export async function getDashboardData(now = new Date()) {
     activeVocabularyCount,
     archivedVocabularyCount,
     dueReviewCount,
-    reviewsCompletedToday,
+    reviewsCompletedToday: reviewedCardsToday.length,
     recentReviewEvents,
     upcomingDueReviews,
     levelBreakdown: levelBreakdown.filter(

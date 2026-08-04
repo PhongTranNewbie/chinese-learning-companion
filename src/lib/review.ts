@@ -11,16 +11,39 @@ const reviewGrades = ["AGAIN", "HARD", "GOOD", "EASY"] as const;
 export async function submitReview(formData: FormData) {
   const user = await requireCurrentUser();
   const reviewCardId = readString(formData, "reviewCardId");
+  const reviewSessionId = readString(formData, "reviewSessionId");
   const grade = readString(formData, "grade");
   const deckId = readString(formData, "deckId");
 
-  if (!reviewCardId || !isReviewGrade(grade)) {
+  if (!reviewCardId || !reviewSessionId || !isReviewGrade(grade)) {
     return;
   }
 
   const now = new Date();
 
   await prisma.$transaction(async (tx) => {
+    const existingSession = await tx.reviewSession.findUnique({
+      where: {
+        id: reviewSessionId,
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    if (existingSession && existingSession.userId !== user.id) {
+      return;
+    }
+
+    if (!existingSession) {
+      await tx.reviewSession.create({
+        data: {
+          id: reviewSessionId,
+          userId: user.id,
+        },
+      });
+    }
+
     const reviewCard = await tx.reviewCard.findFirst({
       where: {
         id: reviewCardId,
@@ -36,26 +59,62 @@ export async function submitReview(formData: FormData) {
       return;
     }
 
-    const nextSchedule = scheduleReview({
-      card: {
-        intervalDays: reviewCard.intervalDays,
-        easeFactor: reviewCard.easeFactor,
-        reviewCount: reviewCard.reviewCount,
-        lapseCount: reviewCard.lapseCount,
+    const existingEvent = await tx.reviewEvent.findUnique({
+      where: {
+        reviewSessionId_reviewCardId: {
+          reviewSessionId,
+          reviewCardId: reviewCard.id,
+        },
       },
+    });
+
+    const baselineCard = existingEvent
+      ? {
+          intervalDays: existingEvent.previousInterval,
+          easeFactor: existingEvent.previousEase,
+          reviewCount: Math.max(0, reviewCard.reviewCount - 1),
+          lapseCount: Math.max(
+            0,
+            reviewCard.lapseCount - (existingEvent.grade === "AGAIN" ? 1 : 0),
+          ),
+        }
+      : {
+          intervalDays: reviewCard.intervalDays,
+          easeFactor: reviewCard.easeFactor,
+          reviewCount: reviewCard.reviewCount,
+          lapseCount: reviewCard.lapseCount,
+        };
+
+    const previousDueAt = existingEvent?.previousDueAt ?? reviewCard.dueAt;
+    const nextSchedule = scheduleReview({
+      card: baselineCard,
       grade,
       now,
     });
 
-    await tx.reviewEvent.create({
-      data: {
+    await tx.reviewEvent.upsert({
+      where: {
+        reviewSessionId_reviewCardId: {
+          reviewSessionId,
+          reviewCardId: reviewCard.id,
+        },
+      },
+      create: {
         reviewCardId: reviewCard.id,
+        reviewSessionId,
         grade,
-        previousDueAt: reviewCard.dueAt,
+        previousDueAt,
         nextDueAt: nextSchedule.dueAt,
-        previousInterval: reviewCard.intervalDays,
+        previousInterval: baselineCard.intervalDays,
         nextInterval: nextSchedule.intervalDays,
-        previousEase: reviewCard.easeFactor,
+        previousEase: baselineCard.easeFactor,
+        nextEase: nextSchedule.easeFactor,
+        reviewedAt: now,
+      },
+      update: {
+        grade,
+        nextDueAt: nextSchedule.dueAt,
+        nextInterval: nextSchedule.intervalDays,
         nextEase: nextSchedule.easeFactor,
         reviewedAt: now,
       },
@@ -77,6 +136,7 @@ export async function submitReview(formData: FormData) {
     });
   });
 
+  revalidatePath("/");
   revalidatePath("/review");
   if (deckId) {
     revalidatePath(`/decks/${deckId}/study`);

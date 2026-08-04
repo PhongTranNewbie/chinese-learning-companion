@@ -70,6 +70,8 @@ export function DeckStudyCards({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [reviewSessionId] = useState(createClientSessionId);
+  const [selectedRatings, setSelectedRatings] = useState<Record<string, string>>({});
   const currentCard = cards[currentIndex];
 
   const progressLabel = useMemo(
@@ -236,28 +238,49 @@ export function DeckStudyCards({
               </p>
               {canSaveProgress ? (
                 <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                  {Object.entries(gradeLabels).map(([grade, gradeMeta]) => (
-                    <form key={grade} action={submitReview}>
-                      <input
-                        type="hidden"
-                        name="reviewCardId"
-                        value={currentCard.reviewCardId}
-                      />
-                      <input type="hidden" name="grade" value={grade} />
-                      <input type="hidden" name="deckId" value={deckId} />
-                      <button
-                        type="submit"
-                        className={`min-h-20 w-full rounded-md border px-4 py-3 text-left transition hover:-translate-y-0.5 ${gradeMeta.className}`}
-                      >
-                        <span className="block text-base font-semibold">
-                          {gradeMeta.label}
-                        </span>
-                        <span className="mt-1 block text-sm opacity-80">
-                          {gradeMeta.helper}
-                        </span>
-                      </button>
-                    </form>
-                  ))}
+                  {Object.entries(gradeLabels).map(([grade, gradeMeta]) => {
+                    const isSelected = selectedRatings[currentCard.reviewCardId] === grade;
+
+                    return (
+                      <form key={grade} action={submitReview}>
+                        <input
+                          type="hidden"
+                          name="reviewCardId"
+                          value={currentCard.reviewCardId}
+                        />
+                        <input type="hidden" name="reviewSessionId" value={reviewSessionId} />
+                        <input type="hidden" name="grade" value={grade} />
+                        <input type="hidden" name="deckId" value={deckId} />
+                        <button
+                          type="submit"
+                          disabled={isSelected}
+                          onClick={() =>
+                            setSelectedRatings((ratings) => ({
+                              ...ratings,
+                              [currentCard.reviewCardId]: grade,
+                            }))
+                          }
+                          className={`min-h-20 w-full rounded-md border px-4 py-3 text-left transition hover:-translate-y-0.5 disabled:cursor-default ${gradeMeta.className} ${
+                            isSelected
+                              ? "scale-[1.01] shadow-md ring-2 ring-teal-600 ring-offset-2"
+                              : ""
+                          }`}
+                        >
+                          <span className="flex items-center justify-between gap-3 text-base font-semibold">
+                            <span>{gradeMeta.label}</span>
+                            {isSelected ? (
+                              <span className="text-xs uppercase tracking-wide opacity-80">
+                                Selected
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="mt-1 block text-sm opacity-80">
+                            {gradeMeta.helper}
+                          </span>
+                        </button>
+                      </form>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="mt-3 rounded-md bg-teal-50 p-4 ring-1 ring-teal-100">
@@ -439,4 +462,9 @@ function cleanMemoryText(value: string) {
 
 function normalizeMemoryText(value: string) {
   return value.toLocaleLowerCase().replace(/\s+/g, " ").trim();
+}
+
+
+function createClientSessionId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 }

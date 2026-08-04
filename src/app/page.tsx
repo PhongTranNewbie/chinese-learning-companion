@@ -11,7 +11,7 @@ export default async function Home() {
   const hasDueReviews = dashboard.dueReviewCount > 0;
 
   return (
-    <main className="bg-slate-50">
+    <main className="min-h-[calc(100vh-73px)] bg-slate-50 dark:bg-slate-900">
       <div className="mx-auto max-w-6xl px-5 py-6 sm:px-6 sm:py-8">
       <section className="rounded-md bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
