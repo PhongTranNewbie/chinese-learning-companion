@@ -167,6 +167,7 @@ model VocabularyItem {
   @@index([deckId])
   @@index([levelId])
   @@index([hanzi])
+  @@unique([hanzi, pinyin])
 }
 
 model VocabularyCharacterNote {
@@ -252,6 +253,7 @@ model ReviewEvent {
   @@index([reviewCardId, reviewedAt])
   @@index([reviewSessionId])
   @@index([reviewedAt])
+  @@unique([reviewSessionId, reviewCardId])
 }
 
 model QuizSession {
