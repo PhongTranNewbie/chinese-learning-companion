@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { Deck } from "@prisma/client";
 import {
   importVocabularyCsv,
@@ -24,6 +24,8 @@ export function VocabularyImportForm({
     importVocabularyCsv,
     initialState,
   );
+
+  const [showDetails, setShowDetails] = useState(false);
 
   return (
     <form action={formAction} className="space-y-6">
@@ -103,9 +105,61 @@ export function VocabularyImportForm({
 
       {typeof state.created === "number" ? (
         <div className="rounded-md border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-          Imported {state.created} row{state.created === 1 ? "" : "s"}.
-          Skipped {state.skipped ?? 0} duplicate row
-          {(state.skipped ?? 0) === 1 ? "" : "s"}.
+          <p className="font-semibold">Import complete</p>
+          <ul className="mt-2 space-y-1">
+            <li>Inserted: {state.created}</li>
+            {(state.updated ?? 0) > 0 ? <li>Updated: {state.updated}</li> : null}
+            {(state.skipped ?? 0) > 0 ? <li>Skipped: {state.skipped}</li> : null}
+          </ul>
+
+          {/* Hiển thị nút Toggle chi tiết nếu có Updated hoặc Skipped */}
+          {(state.updatedItems?.length || state.skippedItems?.length) ? (
+            <div className="mt-3 border-t border-green-200 pt-3">
+              <button
+                type="button"
+                onClick={() => setShowDetails(!showDetails)}
+                className="text-xs font-semibold text-green-900 underline hover:text-green-950"
+              >
+                {showDetails ? "Hide import details ▲" : "View import details ▼"}
+              </button>
+
+              {showDetails && (
+                <div className="mt-3 space-y-3 text-xs">
+                  {state.updatedItems?.length ? (
+                    <div>
+                      <span className="font-semibold text-amber-800">
+                        Updated ({state.updatedItems.length}):
+                      </span>
+                      <ul className="mt-1 list-disc pl-5 space-y-0.5 text-slate-700">
+                        {state.updatedItems.map((item, index) => (
+                          <li key={index}>
+                            <strong className="font-medium text-slate-900">{item.hanzi}</strong> ({item.pinyin})
+                            {item.reason ? <span className="text-slate-500"> — {item.reason}</span> : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  {state.skippedItems?.length ? (
+                    <div>
+                      <span className="font-semibold text-slate-600">
+                        Skipped ({state.skippedItems.length}):
+                      </span>
+                      <ul className="mt-1 list-disc pl-5 space-y-0.5 text-slate-700">
+                        {state.skippedItems.map((item, index) => (
+                          <li key={index}>
+                            <strong className="font-medium text-slate-900">{item.hanzi}</strong> ({item.pinyin})
+                            {item.reason ? <span className="text-slate-500"> — {item.reason}</span> : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

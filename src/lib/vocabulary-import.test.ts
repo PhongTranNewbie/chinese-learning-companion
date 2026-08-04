@@ -22,39 +22,33 @@ describe("vocabulary import validation", () => {
     ]);
   });
 
-  it("normalizes duplicate keys by deck scope and trimmed vocabulary fields", () => {
+  it("normalizes duplicate keys by trimmed hanzi and pinyin", () => {
     expect(
       getVocabularyImportDuplicateKey({
-        deckName: " HSK 1 ",
         hanzi: " \u5b66\u4e60 ",
         pinyin: " xue2 xi2 ",
-        meaning: " study ",
       }),
     ).toBe(
       getVocabularyImportDuplicateKey({
-        deckName: "hsk 1",
+        deckName: "different deck",
         hanzi: "\u5b66\u4e60",
         pinyin: "xue2 xi2",
-        meaning: "study",
+        meaning: "different meaning",
       }),
     );
   });
 
-  it("keeps duplicate keys different across deck scopes", () => {
-    const firstDeck = getVocabularyImportDuplicateKey({
-      deckId: "deck-1",
-      hanzi: "\u4f60\u597d",
-      pinyin: "ni3 hao3",
-      meaning: "hello",
+  it("keeps duplicate keys different for different pronunciations", () => {
+    const firstPronunciation = getVocabularyImportDuplicateKey({
+      hanzi: "\u597d",
+      pinyin: "hao3",
     });
-    const secondDeck = getVocabularyImportDuplicateKey({
-      deckId: "deck-2",
-      hanzi: "\u4f60\u597d",
-      pinyin: "ni3 hao3",
-      meaning: "hello",
+    const secondPronunciation = getVocabularyImportDuplicateKey({
+      hanzi: "\u597d",
+      pinyin: "hao4",
     });
 
-    expect(firstDeck).not.toBe(secondDeck);
+    expect(firstPronunciation).not.toBe(secondPronunciation);
   });
 
   it("accepts optional memory note columns", () => {

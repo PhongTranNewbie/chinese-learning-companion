@@ -22,7 +22,7 @@ const initialState: CreateVocabularyState = {};
 const characterNotesExample =
   "妈 | 女 + 马 | 女 = woman/female; 马 = horse | Memory aid: imagine a woman with a horse to remember mother.";
 const fieldClass =
-  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100";
+  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-teal-400 dark:focus:ring-teal-900";
 const primaryButtonClass =
   "w-full rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto";
 
@@ -44,10 +44,10 @@ export function VocabularyCreateForm({
     <form action={formAction} className="space-y-8">
       <section className="space-y-5">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-100">
             Word essentials
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             Add the word exactly as you want it to appear during study.
           </p>
         </div>
@@ -78,17 +78,17 @@ export function VocabularyCreateForm({
 
       <section className="space-y-5">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-100">
             Study context
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             Optional details help you sort, review, and understand the word
             later.
           </p>
         </div>
         <div className="grid gap-5 md:grid-cols-2">
         <label className="space-y-2">
-          <span className="text-sm font-medium text-slate-700">Deck</span>
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Deck</span>
           <select
             name="deckId"
             defaultValue={vocabularyItem?.deckId ?? defaultDeckId ?? ""}
@@ -103,7 +103,7 @@ export function VocabularyCreateForm({
           </select>
         </label>
         <label className="space-y-2">
-          <span className="text-sm font-medium text-slate-700">Level</span>
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Level</span>
           <select
             name="levelId"
             defaultValue={vocabularyItem?.levelId ?? ""}
@@ -145,12 +145,12 @@ export function VocabularyCreateForm({
         </div>
       </section>
 
-      <section className="space-y-5 rounded-md bg-amber-50/60 p-5 ring-1 ring-amber-100">
+      <section className="space-y-5 rounded-md border-l-4 border-amber-300 bg-slate-50 p-5 ring-1 ring-slate-200 dark:border-amber-500/70 dark:bg-slate-800 dark:ring-slate-700">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-100">
             Hanzi memory notes
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             Add personal memory clues for the whole word. These are learning
             aids, not guaranteed historical etymology.
           </p>
@@ -175,21 +175,21 @@ export function VocabularyCreateForm({
         />
       </section>
 
-      <section className="space-y-5 rounded-md bg-teal-50/50 p-5 ring-1 ring-teal-100">
+      <section className="space-y-5 rounded-md border-l-4 border-teal-400 bg-slate-50 p-5 ring-1 ring-slate-200 dark:border-teal-400/70 dark:bg-slate-800 dark:ring-slate-700">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-100">
             Character component stories
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             Optional per-character stories make Hanzi easier to recall. Use one
             line per character.
           </p>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
             Format: character | components | component meanings | memory story.
             Memory stories are learning aids, not guaranteed historical
             etymology.
           </p>
-          <p className="mt-3 rounded-md bg-white p-3 font-mono text-xs leading-5 text-slate-700 ring-1 ring-teal-100">
+          <p className="mt-3 rounded-md bg-white p-3 font-mono text-xs leading-5 text-slate-700 ring-1 ring-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700">
             {characterNotesExample}
           </p>
         </div>
@@ -207,15 +207,15 @@ export function VocabularyCreateForm({
 
       <section className="space-y-5">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-100">
             Private notes
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             Keep any extra context you want available on the detail page.
           </p>
         </div>
         <label className="block space-y-2">
-          <span className="text-sm font-medium text-slate-700">Notes</span>
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Notes</span>
           <textarea
             name="notes"
             rows={4}
@@ -255,7 +255,7 @@ function TextareaField({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{label}</span>
       <textarea
         name={name}
         rows={rows}
@@ -283,7 +283,7 @@ function Field({
 }: FieldProps) {
   return (
     <label className="space-y-2">
-      <span className="text-sm font-medium text-slate-700">
+      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
         {label}
         {required ? <span className="text-teal-700"> *</span> : null}
       </span>

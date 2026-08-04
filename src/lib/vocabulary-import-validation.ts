@@ -48,10 +48,8 @@ export function validateVocabularyImportRows(rows: ParsedImportRow[]) {
       row,
       rowNumber,
       duplicateKey: getVocabularyImportDuplicateKey({
-        deckName: row.deck,
         hanzi: row.hanzi,
         pinyin: row.pinyin,
-        meaning: row.meaning,
       }),
     };
   });
@@ -60,11 +58,8 @@ export function validateVocabularyImportRows(rows: ParsedImportRow[]) {
 }
 
 export function getVocabularyImportDuplicateKey({
-  deckId,
-  deckName,
   hanzi,
   pinyin,
-  meaning,
 }: {
   deckId?: string | null;
   deckName?: string;
@@ -72,12 +67,5 @@ export function getVocabularyImportDuplicateKey({
   pinyin?: string;
   meaning?: string;
 }) {
-  const deckScope = deckName?.trim().toLocaleLowerCase() || deckId || "no-deck";
-
-  return [
-    deckScope,
-    hanzi?.trim(),
-    pinyin?.trim(),
-    meaning?.trim(),
-  ].join("\u001f");
+  return [hanzi?.trim(), pinyin?.trim()].join("\u001f");
 }

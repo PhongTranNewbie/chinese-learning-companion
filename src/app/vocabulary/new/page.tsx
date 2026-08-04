@@ -34,7 +34,9 @@ export default async function NewVocabularyPage({
   ]);
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
+    <main className="min-h-[calc(100vh-73px)] bg-slate-50 dark:bg-slate-900">
+      <div className="mx-auto max-w-6xl px-5 py-6 sm:px-6 sm:py-8">
+        <div className="max-w-4xl">
       <div className="border-b border-slate-200 pb-6">
         <Link href="/vocabulary" className="text-sm font-medium text-teal-700 transition hover:text-teal-800">
           Back to vocabulary
@@ -54,6 +56,8 @@ export default async function NewVocabularyPage({
           defaultDeckId={params.deckId}
         />
       </section>
+        </div>
+      </div>
     </main>
   );
 }

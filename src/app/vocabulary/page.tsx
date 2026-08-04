@@ -96,17 +96,17 @@ export default async function VocabularyPage({
   const lastResult = Math.min(skip + vocabularyItems.length, totalCount);
 
   return (
-    <main className="bg-slate-50">
+    <main className="min-h-[calc(100vh-73px)] bg-slate-50 dark:bg-slate-900">
       <div className="mx-auto max-w-6xl px-5 py-6 sm:px-6 sm:py-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-teal-700">
+            <p className="text-sm font-semibold text-teal-700 dark:text-teal-300">
               Vocabulary library
             </p>
-            <h1 className="mt-2 text-3xl font-semibold text-slate-950 sm:text-4xl">
+            <h1 className="mt-2 text-3xl font-semibold text-slate-900 sm:text-4xl dark:text-slate-50">
               Saved words
             </h1>
-            <p className="mt-2 max-w-2xl text-slate-600">
+            <p className="mt-2 max-w-2xl text-slate-600 dark:text-slate-300">
               Search vocabulary, filter your study list, and keep longer word
               libraries easy to scan.
             </p>
@@ -133,25 +133,25 @@ export default async function VocabularyPage({
           </div>
         </div>
 
-        <form className="mt-6 rounded-md bg-white p-4 shadow-sm ring-1 ring-slate-100">
+        <form className="mt-6 rounded-md bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px_180px_160px_160px_auto]">
             <label className="space-y-2">
-              <span className="text-sm font-medium text-slate-700">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                 Search
               </span>
               <input
                 name="q"
                 defaultValue={query}
                 placeholder="Hanzi, pinyin, or meaning"
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
               />
             </label>
             <label className="space-y-2">
-              <span className="text-sm font-medium text-slate-700">Deck</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Deck</span>
               <select
                 name="deck"
                 defaultValue={deckId}
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
               >
                 <option value="">All active decks</option>
                 {decks.map((deck) => (
@@ -162,11 +162,11 @@ export default async function VocabularyPage({
               </select>
             </label>
             <label className="space-y-2">
-              <span className="text-sm font-medium text-slate-700">Level</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Level</span>
               <select
                 name="levelId"
                 defaultValue={levelId}
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
               >
                 <option value="">All levels</option>
                 {levels.map((level) => (
@@ -177,11 +177,11 @@ export default async function VocabularyPage({
               </select>
             </label>
             <label className="space-y-2">
-              <span className="text-sm font-medium text-slate-700">Status</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Status</span>
               <select
                 name="status"
                 defaultValue={status}
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
               >
                 <option value="active">Active words</option>
                 <option value="due">Due for review</option>
@@ -190,11 +190,11 @@ export default async function VocabularyPage({
               </select>
             </label>
             <label className="space-y-2">
-              <span className="text-sm font-medium text-slate-700">Sort</span>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Sort</span>
               <select
                 name="sort"
                 defaultValue={sort}
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 shadow-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
               >
                 <option value="newest">Newest</option>
                 <option value="hanzi">Hanzi</option>
@@ -217,7 +217,7 @@ export default async function VocabularyPage({
               </Link>
             </div>
           </div>
-          <p className="mt-3 text-sm text-slate-500">
+          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
             {totalCount === 0
               ? "No words to show."
               : `Showing ${firstResult}-${lastResult} of ${totalCount} word${
@@ -241,48 +241,48 @@ export default async function VocabularyPage({
           </div>
         ) : (
           <>
-            <div className="mt-8 overflow-x-auto rounded-md bg-white shadow-sm ring-1 ring-slate-100">
-              <table className="w-full min-w-[820px] border-collapse text-left text-sm">
-                <thead className="bg-slate-50 text-slate-600">
+            <div className="mt-8 overflow-x-auto rounded-md bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700">
+              <table className="w-full border-collapse text-left text-sm">
+                <thead className="bg-slate-50 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
                   <tr>
-                    <th className="px-4 py-3 font-semibold">Word</th>
-                    <th className="px-4 py-3 font-semibold">Meaning</th>
-                    <th className="px-4 py-3 font-semibold">Deck</th>
-                    <th className="px-4 py-3 font-semibold">Level</th>
-                    <th className="px-4 py-3 font-semibold">Next review</th>
-                    <th className="px-4 py-3 font-semibold">Details</th>
+                    <th className="px-3 py-3 font-semibold">Word</th>
+                    <th className="px-3 py-3 font-semibold">Meaning</th>
+                    <th className="px-3 py-3 font-semibold">Deck</th>
+                    <th className="px-3 py-3 font-semibold">Level</th>
+                    <th className="px-3 py-3 font-semibold">Next review</th>
+                    <th className="px-3 py-3 font-semibold">Details</th>
                   </tr>
                 </thead>
-                <tbody>
+                 <tbody>
                   {vocabularyItems.map((item) => (
                     <tr
                       key={item.id}
-                      className="border-t border-slate-100 transition hover:bg-slate-50/70"
+                      className="border-t border-slate-100 transition hover:bg-slate-50/70 dark:border-slate-700 dark:hover:bg-slate-700/70"
                     >
-                      <td className="px-4 py-4">
-                        <p className="text-2xl font-semibold leading-none text-teal-700">
+                      <td className="px-3 py-4">
+                        <p className="text-2xl font-semibold leading-none text-teal-700 dark:text-teal-400">
                           {item.hanzi}
                         </p>
-                        <p className="mt-2 text-sm font-medium text-slate-600">
+                        <p className="mt-2 text-sm font-medium text-slate-600 dark:text-slate-400">
                           {formatPinyinForDisplay(item.pinyin)}
                         </p>
                       </td>
-                      <td className="px-4 py-4 text-slate-700">
+                      <td className="px-3 py-4 text-slate-700 dark:text-slate-300">
                         {item.meaning}
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-3 py-4">
                         <MetaChip label={item.deck?.name ?? "No deck"} />
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-3 py-4">
                         <MetaChip label={item.level?.name ?? "No level"} />
                       </td>
-                      <td className="px-4 py-4 text-slate-600">
+                      <td className="whitespace-nowrap px-3 py-4 text-slate-600 dark:text-slate-400">
                         {formatReviewCardDate(item.reviewCard)}
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-3 py-4">
                         <Link
                           href={`/vocabulary/${item.id}`}
-                          className="font-semibold text-teal-700 transition hover:text-teal-800"
+                          className="font-semibold text-teal-700 transition hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300"
                         >
                           Open
                         </Link>
@@ -324,8 +324,8 @@ function Pagination({
   const isLastPage = currentPage >= totalPages;
 
   return (
-    <nav className="mt-5 flex flex-col gap-3 rounded-md bg-white p-4 shadow-sm ring-1 ring-slate-100 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-sm text-slate-600">
+    <nav className="mt-5 flex flex-col gap-3 rounded-md bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-800 dark:ring-slate-700">
+      <p className="text-sm text-slate-600 dark:text-slate-300">
         Page {currentPage} of {totalPages}
       </p>
       <div className="flex flex-wrap gap-2">
@@ -375,7 +375,7 @@ function PaginationLink({
 
 function MetaChip({ label }: { label: string }) {
   return (
-    <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-100">
+    <span className="inline-block whitespace-nowrap rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:ring-slate-600">
       {label}
     </span>
   );
