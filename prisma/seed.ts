@@ -447,11 +447,17 @@ async function upsertVocabularyItem({
     isArchived: item.isArchived ?? false,
   };
 
+  // Look up by (hanzi, pinyin) only. Including `meaning` here meant that
+  // editing a seed word's meaning created a second row instead of updating the
+  // first, which is where most duplicate catalog rows came from.
+  // `userId: null` keeps the seed inside the catalog rows it owns: without it,
+  // the wider lookup could match a row a user has made their own and overwrite
+  // their meaning, deck, mnemonic, notes and character notes.
   const existing = await prisma.vocabularyItem.findFirst({
     where: {
       hanzi: item.hanzi,
       pinyin: item.pinyin,
-      meaning: item.meaning,
+      userId: null,
     },
     include: {
       reviewCard: true,
