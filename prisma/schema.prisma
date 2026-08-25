@@ -17,6 +17,7 @@ model User {
   sessions        Session[]
   studyPreference UserStudyPreference?
   vocabularyItems VocabularyItem[]
+  userVocabularies UserVocabulary[]
   decks           Deck[]
   courses         Course[]
   reviewSessions  ReviewSession[]
@@ -118,6 +119,7 @@ model Deck {
   isArchived      Boolean          @default(false)
   lessons         Lesson[]
   vocabularyItems VocabularyItem[]
+  userVocabularies UserVocabulary[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -160,6 +162,7 @@ model VocabularyItem {
   reviewCard     ReviewCard?
   characterNotes VocabularyCharacterNote[]
   tags           VocabularyTag[]
+  userVocabularies UserVocabulary[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -168,6 +171,38 @@ model VocabularyItem {
   @@index([levelId])
   @@index([hanzi])
   @@unique([hanzi, pinyin])
+}
+
+/// Per-user learning data for a catalog word.
+///
+/// Added in the expand step of the catalog/per-user split: "VocabularyItem"
+/// currently mixes shared language data with one owner's learning data, so two
+/// users cannot study the same word independently. This join is where each
+/// user's own mnemonic, notes, deck membership and review state will live.
+///
+/// Nothing reads or writes it yet - the backfill and the code changes follow in
+/// later phases, while "VocabularyItem.userId" and its per-user columns stay in
+/// place so the running app is unaffected.
+model UserVocabulary {
+  id               String         @id @default(cuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vocabularyItemId String
+  vocabularyItem   VocabularyItem @relation(fields: [vocabularyItemId], references: [id], onDelete: Cascade)
+  deckId           String?
+  deck             Deck?          @relation(fields: [deckId], references: [id])
+  personalMeaning  String?
+  memoryMnemonic   String?
+  personalNotes    String?
+  source           String?
+  isArchived       Boolean        @default(false)
+  reviewCard       ReviewCard?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([userId, vocabularyItemId])
+  @@index([vocabularyItemId])
+  @@index([deckId])
 }
 
 model VocabularyCharacterNote {
@@ -208,6 +243,13 @@ model ReviewCard {
   id               String         @id @default(cuid())
   vocabularyItemId String         @unique
   vocabularyItem   VocabularyItem @relation(fields: [vocabularyItemId], references: [id], onDelete: Cascade)
+  // Nullable for now: the review cards that exist today still hang off
+  // "vocabularyItemId", and both links coexist until the backfill has run and
+  // every read/write path has moved over. Postgres treats NULLs as distinct, so
+  // @unique already models the eventual one-card-per-UserVocabulary rule without
+  // rejecting the existing rows.
+  userVocabularyId String?        @unique
+  userVocabulary   UserVocabulary? @relation(fields: [userVocabularyId], references: [id], onDelete: Cascade)
   dueAt            DateTime
   intervalDays     Int            @default(0)
   easeFactor       Float          @default(2.5)
