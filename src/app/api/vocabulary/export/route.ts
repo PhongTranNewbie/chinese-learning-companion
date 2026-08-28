@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     }
   }
 
-  const vocabularyItems = await prisma.vocabularyItem.findMany({
+  const vocabularyItems = await prisma.userVocabulary.findMany({
     where: {
       userId: user.id,
       isArchived: false,
@@ -41,10 +41,14 @@ export async function GET(request: Request) {
     },
     include: {
       deck: true,
-      level: true,
-      characterNotes: {
-        orderBy: {
-          sortOrder: "asc",
+      vocabularyItem: {
+        include: {
+          level: true,
+          characterNotes: {
+            orderBy: {
+              sortOrder: "asc",
+            },
+          },
         },
       },
     },
@@ -54,22 +58,22 @@ export async function GET(request: Request) {
   });
 
   const csv = toCsv(
-    vocabularyItems.map((item) => ({
-      hanzi: item.hanzi,
-      pinyin: item.pinyin,
-      meaning: item.meaning,
-      level: item.level?.name ?? "",
-      deck: item.deck?.name ?? "",
-      partOfSpeech: item.partOfSpeech ?? "",
-      measureWord: item.measureWord ?? "",
-      exampleChinese: item.exampleChinese ?? "",
-      examplePinyin: item.examplePinyin ?? "",
-      exampleEnglish: item.exampleEnglish ?? "",
-      characterBreakdown: item.characterBreakdown ?? "",
-      wordFormationNote: item.wordFormationNote ?? "",
-      memoryMnemonic: item.memoryMnemonic ?? "",
-      characterNotes: serializeCharacterNotes(item.characterNotes),
-      notes: item.notes ?? "",
+    vocabularyItems.map((uv) => ({
+      hanzi: uv.vocabularyItem.hanzi,
+      pinyin: uv.vocabularyItem.pinyin,
+      meaning: uv.personalMeaning ?? uv.vocabularyItem.meaning,
+      level: uv.vocabularyItem.level?.name ?? "",
+      deck: uv.deck?.name ?? "",
+      partOfSpeech: uv.vocabularyItem.partOfSpeech ?? "",
+      measureWord: uv.vocabularyItem.measureWord ?? "",
+      exampleChinese: uv.vocabularyItem.exampleChinese ?? "",
+      examplePinyin: uv.vocabularyItem.examplePinyin ?? "",
+      exampleEnglish: uv.vocabularyItem.exampleEnglish ?? "",
+      characterBreakdown: uv.vocabularyItem.characterBreakdown ?? "",
+      wordFormationNote: uv.vocabularyItem.wordFormationNote ?? "",
+      memoryMnemonic: uv.memoryMnemonic ?? "",
+      characterNotes: serializeCharacterNotes(uv.vocabularyItem.characterNotes),
+      notes: uv.personalNotes ?? "",
     })),
   );
 

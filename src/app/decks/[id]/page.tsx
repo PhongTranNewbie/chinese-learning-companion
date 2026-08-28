@@ -35,20 +35,6 @@ export default async function DeckDetailPage({
       id,
       OR: user ? [{ userId: user.id }, { userId: null }] : [{ userId: null }],
     },
-    include: {
-      vocabularyItems: {
-        where: {
-          isArchived: false,
-        },
-        include: {
-          level: true,
-          reviewCard: true,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-    },
   });
 
   if (!deck) {
@@ -72,8 +58,26 @@ export default async function DeckDetailPage({
   const canMutateDeck = Boolean(user && !isPublicDeck);
   const showResetProgress = canMutateDeck && !deck.isArchived;
   const now = new Date();
-  const activeWordCount = deck.vocabularyItems.length;
-  const dueWordCount = deck.vocabularyItems.filter(
+  // Public/template decks keep reading their own VocabularyItems; an owned deck
+  // reads the signed-in user's join rows for this deck.
+  const vocabularyItems =
+    !isPublicDeck && user
+      ? await getOwnedDeckItems(user.id, deck.id)
+      : await prisma.vocabularyItem.findMany({
+          where: {
+            deckId: deck.id,
+            isArchived: false,
+          },
+          include: {
+            level: true,
+            reviewCard: true,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+  const activeWordCount = vocabularyItems.length;
+  const dueWordCount = vocabularyItems.filter(
     (item) =>
       item.reviewCard?.status === "ACTIVE" && item.reviewCard.dueAt <= now,
   ).length;
@@ -211,7 +215,7 @@ export default async function DeckDetailPage({
           </div>
         ) : null}
 
-        {deck.vocabularyItems.length === 0 ? (
+        {vocabularyItems.length === 0 ? (
           <div className="mt-8">
             <EmptyState
               icon="词"
@@ -253,7 +257,7 @@ export default async function DeckDetailPage({
                 </tr>
               </thead>
               <tbody>
-                {deck.vocabularyItems.map((item) => (
+                {vocabularyItems.map((item) => (
                   <tr
                     key={item.id}
                     className="border-t border-slate-100 transition hover:bg-slate-50/70"
@@ -330,6 +334,64 @@ export default async function DeckDetailPage({
       </div>
     </main>
   );
+}
+
+/**
+ * An owned deck's active words come from the user's join rows for that deck.
+ * Catalog scalars read through the join's catalog entry; per-user meaning and
+ * the review card come from the join itself. The word detail URLs stay keyed to
+ * the legacy owned row (Phase 4), which is not the catalog entry, so each word's
+ * owned id is resolved by spelling to keep producing the same hrefs.
+ */
+async function getOwnedDeckItems(userId: string, deckId: string) {
+  const userVocabularies = await prisma.userVocabulary.findMany({
+    where: {
+      userId,
+      deckId,
+      isArchived: false,
+    },
+    include: {
+      reviewCard: true,
+      vocabularyItem: {
+        include: {
+          level: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  if (userVocabularies.length === 0) {
+    return [];
+  }
+
+  const ownedRows = await prisma.vocabularyItem.findMany({
+    where: {
+      userId,
+      OR: userVocabularies.map((uv) => ({
+        hanzi: uv.vocabularyItem.hanzi,
+        pinyin: uv.vocabularyItem.pinyin,
+      })),
+    },
+    select: { id: true, hanzi: true, pinyin: true },
+  });
+  const ownedIdBySpelling = new Map(
+    ownedRows.map((row) => [`${row.hanzi} ${row.pinyin}`, row.id]),
+  );
+
+  return userVocabularies.map((uv) => ({
+    id:
+      ownedIdBySpelling.get(
+        `${uv.vocabularyItem.hanzi} ${uv.vocabularyItem.pinyin}`,
+      ) ?? uv.vocabularyItem.id,
+    hanzi: uv.vocabularyItem.hanzi,
+    pinyin: uv.vocabularyItem.pinyin,
+    meaning: uv.personalMeaning ?? uv.vocabularyItem.meaning,
+    level: uv.vocabularyItem.level,
+    reviewCard: uv.reviewCard,
+  }));
 }
 
 function SummaryPill({

@@ -56,11 +56,10 @@ export default async function VocabularyPage({
   const requestedPage = parsePage(params.page);
   const now = new Date();
 
-  const where: Prisma.VocabularyItemWhereInput = {
-    userId,
+  // Level and search filters live on the shared catalog entry, so they nest
+  // under the join's "vocabularyItem" relation.
+  const catalogFilter: Prisma.VocabularyItemWhereInput = {
     ...(levelId ? { levelId } : {}),
-    ...(deckId ? { deckId } : {}),
-    ...getStatusWhere(status, now),
     ...(query
       ? {
           OR: [
@@ -72,22 +71,76 @@ export default async function VocabularyPage({
       : {}),
   };
 
-  const totalCount = await prisma.vocabularyItem.count({ where });
+  // The list reads the user's join rows. A guest owns none - the shared catalog
+  // is never filtered by ownership - so the list is empty for guests. The
+  // "userId" fallback below is never queried for guests (guarded by isGuest).
+  const where: Prisma.UserVocabularyWhereInput = {
+    userId: userId ?? "",
+    ...(deckId ? { deckId } : {}),
+    ...getStatusWhere(status, now),
+    ...(Object.keys(catalogFilter).length > 0
+      ? { vocabularyItem: catalogFilter }
+      : {}),
+  };
+
+  const isGuest = userId === null;
+
+  const totalCount = isGuest ? 0 : await prisma.userVocabulary.count({ where });
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   const currentPage = Math.min(requestedPage, totalPages);
   const skip = (currentPage - 1) * pageSize;
 
-  const vocabularyItems = await prisma.vocabularyItem.findMany({
-    where,
-    include: {
-      deck: true,
-      level: true,
-      reviewCard: true,
-    },
-    orderBy: getSortOrder(sort),
-    skip,
-    take: pageSize,
-  });
+  const vocabularyItems = await (async () => {
+    if (isGuest) {
+      return [];
+    }
+
+    const userVocabularies = await prisma.userVocabulary.findMany({
+      where,
+      include: {
+        deck: true,
+        vocabularyItem: { include: { level: true } },
+        reviewCard: true,
+      },
+      orderBy: getSortOrder(sort),
+      skip,
+      take: pageSize,
+    });
+
+    if (userVocabularies.length === 0) {
+      return [];
+    }
+
+    // The vocabulary URLs stay keyed to the legacy owned row (Phase 4), which
+    // is not the join's catalog entry. Resolve each word's owned id by spelling
+    // so the list keeps producing the same hrefs.
+    const ownedRows = await prisma.vocabularyItem.findMany({
+      where: {
+        userId: userId ?? "",
+        OR: userVocabularies.map((uv) => ({
+          hanzi: uv.vocabularyItem.hanzi,
+          pinyin: uv.vocabularyItem.pinyin,
+        })),
+      },
+      select: { id: true, hanzi: true, pinyin: true },
+    });
+    const ownedIdBySpelling = new Map(
+      ownedRows.map((row) => [`${row.hanzi} ${row.pinyin}`, row.id]),
+    );
+
+    return userVocabularies.map((uv) => ({
+      id:
+        ownedIdBySpelling.get(
+          `${uv.vocabularyItem.hanzi} ${uv.vocabularyItem.pinyin}`,
+        ) ?? uv.vocabularyItem.id,
+      hanzi: uv.vocabularyItem.hanzi,
+      pinyin: uv.vocabularyItem.pinyin,
+      meaning: uv.personalMeaning ?? uv.vocabularyItem.meaning,
+      deck: uv.deck,
+      level: uv.vocabularyItem.level,
+      reviewCard: uv.reviewCard,
+    }));
+  })();
 
   const hasFilters = Boolean(
     query || levelId || deckId || status !== "active" || sort !== "newest",
@@ -406,7 +459,7 @@ function parsePage(value: string | undefined) {
 function getStatusWhere(
   status: StatusFilter,
   now: Date,
-): Prisma.VocabularyItemWhereInput {
+): Prisma.UserVocabularyWhereInput {
   if (status === "archived") {
     return { isArchived: true };
   }
@@ -450,9 +503,11 @@ function getStatusWhere(
   return { isArchived: false };
 }
 
-function getSortOrder(sort: SortOption): Prisma.VocabularyItemOrderByWithRelationInput[] {
+function getSortOrder(
+  sort: SortOption,
+): Prisma.UserVocabularyOrderByWithRelationInput[] {
   if (sort === "hanzi") {
-    return [{ hanzi: "asc" }, { createdAt: "desc" }];
+    return [{ vocabularyItem: { hanzi: "asc" } }, { createdAt: "desc" }];
   }
 
   if (sort === "due") {

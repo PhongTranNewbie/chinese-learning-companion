@@ -48,7 +48,7 @@ export async function submitReview(formData: FormData) {
       where: {
         id: reviewCardId,
         status: "ACTIVE",
-        vocabularyItem: {
+        userVocabulary: {
           userId: user.id,
           isArchived: false,
         },

@@ -53,37 +53,81 @@ export default async function DecksPage({ searchParams }: DecksPageProps) {
   const skip = (currentPage - 1) * pageSize;
 
   const [decks, publicStarterDecks] = await Promise.all([
-    prisma.deck.findMany({
-      where,
-      include: {
-        _count: {
-          select: {
+    // Owned decks count their words and due cards through the user's join rows;
+    // a guest's starter-catalog list still counts the deck's own items.
+    isMember
+      ? prisma.deck.findMany({
+          where,
+          include: {
+            _count: {
+              select: {
+                userVocabularies: {
+                  where: {
+                    isArchived: false,
+                  },
+                },
+              },
+            },
+            userVocabularies: {
+              where: {
+                isArchived: false,
+                reviewCard: {
+                  status: "ACTIVE",
+                  dueAt: {
+                    lte: now,
+                  },
+                },
+              },
+              select: {
+                id: true,
+              },
+            },
+          },
+          orderBy: getDeckSortOrder(sort, true),
+          skip,
+          take: pageSize,
+        }).then((items) =>
+          // Normalize to the shape the list renders: "vocabularyItems" carries
+          // the due-word rows and "_count.vocabularyItems" the active word count.
+          items.map((deck) => ({
+            ...deck,
+            _count: {
+              vocabularyItems: deck._count.userVocabularies,
+            },
+            vocabularyItems: deck.userVocabularies,
+          })),
+        )
+      : prisma.deck.findMany({
+          where,
+          include: {
+            _count: {
+              select: {
+                vocabularyItems: {
+                  where: {
+                    isArchived: false,
+                  },
+                },
+              },
+            },
             vocabularyItems: {
               where: {
                 isArchived: false,
+                reviewCard: {
+                  status: "ACTIVE",
+                  dueAt: {
+                    lte: now,
+                  },
+                },
+              },
+              select: {
+                id: true,
               },
             },
           },
-        },
-        vocabularyItems: {
-          where: {
-            isArchived: false,
-            reviewCard: {
-              status: "ACTIVE",
-              dueAt: {
-                lte: now,
-              },
-            },
-          },
-          select: {
-            id: true,
-          },
-        },
-      },
-      orderBy: getDeckSortOrder(sort),
-      skip,
-      take: pageSize,
-    }),
+          orderBy: getDeckSortOrder(sort, false),
+          skip,
+          take: pageSize,
+        }),
     isMember
       ? prisma.deck.findMany({
           where: {
@@ -635,13 +679,18 @@ function parsePage(value: string | undefined) {
   return parsed;
 }
 
-function getDeckSortOrder(sort: SortOption): Prisma.DeckOrderByWithRelationInput[] {
+function getDeckSortOrder(
+  sort: SortOption,
+  isMember: boolean,
+): Prisma.DeckOrderByWithRelationInput[] {
   if (sort === "newest") {
     return [{ createdAt: "desc" }];
   }
 
   if (sort === "word-count") {
-    return [{ vocabularyItems: { _count: "desc" } }, { name: "asc" }];
+    return isMember
+      ? [{ userVocabularies: { _count: "desc" } }, { name: "asc" }]
+      : [{ vocabularyItems: { _count: "desc" } }, { name: "asc" }];
   }
 
   return [{ name: "asc" }];

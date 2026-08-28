@@ -1,13 +1,30 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Prisma } from "@prisma/client";
 import { CharacterNotesDisplay } from "@/components/character-notes-display";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { archiveVocabularyItem } from "@/lib/vocabulary";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import { formatPinyinForDisplay } from "@/lib/pinyin-display";
+import { findUserVocabularyForOwnedItem } from "@/lib/user-vocabulary";
 
 export const dynamic = "force-dynamic";
+
+const detailInclude = {
+  deck: true,
+  level: true,
+  reviewCard: true,
+  characterNotes: {
+    orderBy: {
+      sortOrder: "asc",
+    },
+  },
+} as const satisfies Prisma.VocabularyItemInclude;
+
+type DetailVocabularyItem = Prisma.VocabularyItemGetPayload<{
+  include: typeof detailInclude;
+}>;
 
 type VocabularyDetailPageProps = {
   params: Promise<{
@@ -21,22 +38,108 @@ export default async function VocabularyDetailPage({
   const user = await getCurrentUser();
   const userId = user?.id ?? null;
   const { id } = await params;
-  const vocabularyItem = await prisma.vocabularyItem.findFirst({
-    where: {
-      id,
-      userId,
-    },
-    include: {
-      deck: true,
-      level: true,
-      reviewCard: true,
-      characterNotes: {
-        orderBy: {
-          sortOrder: "asc",
-        },
+
+  let vocabularyItem: DetailVocabularyItem | null = null;
+
+  if (!userId) {
+    // A guest has no join rows; the legacy owned row for "id + userId" is a
+    // public catalog row, read exactly as before so existing starter URLs keep
+    // resolving.
+    vocabularyItem = await prisma.vocabularyItem.findFirst({
+      where: {
+        id,
+        userId: null,
       },
-    },
-  });
+      include: detailInclude,
+    });
+  } else {
+    // The legacy owned "VocabularyItem.id" stays the authorization/URL anchor.
+    // Resolve it with "id + userId", then read per-user fields and the card
+    // through the join that backs it.
+    vocabularyItem = await prisma.$transaction(async (tx) => {
+      const owned = await tx.vocabularyItem.findFirst({
+        where: {
+          id,
+          userId,
+        },
+        select: {
+          id: true,
+          hanzi: true,
+          pinyin: true,
+          reviewCard: {
+            select: {
+              userVocabularyId: true,
+            },
+          },
+        },
+      });
+
+      if (!owned) {
+        return null;
+      }
+
+      const userVocabularyId = await findUserVocabularyForOwnedItem(tx, {
+        userId,
+        hanzi: owned.hanzi,
+        pinyin: owned.pinyin,
+        reviewCardUserVocabularyId: owned.reviewCard?.userVocabularyId ?? null,
+      });
+
+      if (userVocabularyId) {
+        const userVocabulary = await tx.userVocabulary.findFirst({
+          where: {
+            id: userVocabularyId,
+            userId,
+          },
+          include: {
+            deck: true,
+            reviewCard: true,
+            vocabularyItem: {
+              include: {
+                level: true,
+                characterNotes: {
+                  orderBy: {
+                    sortOrder: "asc",
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (userVocabulary) {
+          return {
+            // Catalog scalars come from the shared entry; per-user fields are
+            // overridden from the join. The legacy owned id stays the URL
+            // identity for the edit link and archive action.
+            ...userVocabulary.vocabularyItem,
+            id: owned.id,
+            deckId: userVocabulary.deckId,
+            isArchived: userVocabulary.isArchived,
+            deck: userVocabulary.deck,
+            reviewCard: userVocabulary.reviewCard,
+            memoryMnemonic: userVocabulary.memoryMnemonic,
+            notes: userVocabulary.personalNotes,
+            // The write path stores a meaning that differs from the catalog as
+            // "personalMeaning", leaving it null when it matches. This
+            // reconstructs exactly what the legacy row's "meaning" held.
+            meaning:
+              userVocabulary.personalMeaning ??
+              userVocabulary.vocabularyItem.meaning,
+          };
+        }
+      }
+
+      // No join yet: fall back to the legacy owned row's own fields.
+      return tx.vocabularyItem.findFirst({
+        where: {
+          id: owned.id,
+          userId,
+        },
+        include: detailInclude,
+      });
+    });
+  }
 
   if (!vocabularyItem) {
     notFound();

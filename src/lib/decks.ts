@@ -123,7 +123,9 @@ export async function resetDeckReviewProgress(
   const now = new Date();
 
   await prisma.$transaction(async (tx) => {
-    const vocabularyItems = await tx.vocabularyItem.findMany({
+    // Deck membership is read through the user's join rows (Phase 4A); the card
+    // being reset is the join's review card.
+    const userVocabularies = await tx.userVocabulary.findMany({
       where: {
         deckId,
         userId: user.id,
@@ -131,6 +133,12 @@ export async function resetDeckReviewProgress(
       },
       select: {
         id: true,
+        vocabularyItem: {
+          select: {
+            hanzi: true,
+            pinyin: true,
+          },
+        },
         reviewCard: {
           select: {
             id: true,
@@ -139,8 +147,8 @@ export async function resetDeckReviewProgress(
       },
     });
 
-    const reviewCardIds = vocabularyItems
-      .map((item) => item.reviewCard?.id)
+    const reviewCardIds = userVocabularies
+      .map((uv) => uv.reviewCard?.id)
       .filter((id): id is string => Boolean(id));
 
     if (reviewCardIds.length > 0) {
@@ -157,7 +165,7 @@ export async function resetDeckReviewProgress(
           id: {
             in: reviewCardIds,
           },
-          vocabularyItem: {
+          userVocabulary: {
             deckId,
             userId: user.id,
             isArchived: false,
@@ -175,17 +183,43 @@ export async function resetDeckReviewProgress(
       });
     }
 
-    const vocabularyWithoutCards = vocabularyItems.filter(
-      (item) => !item.reviewCard,
+    const userVocabulariesWithoutCards = userVocabularies.filter(
+      (uv) => !uv.reviewCard,
     );
 
-    if (vocabularyWithoutCards.length > 0) {
-      await tx.reviewCard.createMany({
-        data: vocabularyWithoutCards.map((item) => ({
-          vocabularyItemId: item.id,
-          dueAt: now,
-        })),
+    if (userVocabulariesWithoutCards.length > 0) {
+      // Defensive: Phase 3 writes always create a card for a join row, but if
+      // one is missing, create it linked to the join. The card still needs the
+      // legacy owned row's id until Phase 5 drops "ReviewCard.vocabularyItemId".
+      const ownedRows = await tx.vocabularyItem.findMany({
+        where: {
+          userId: user.id,
+          isArchived: false,
+          deckId,
+        },
+        select: {
+          id: true,
+          hanzi: true,
+          pinyin: true,
+        },
       });
+
+      const ownedIdBySpelling = new Map(
+        ownedRows.map((row) => [`${row.hanzi} ${row.pinyin}`, row.id]),
+      );
+
+      const cardsToCreate = userVocabulariesWithoutCards.flatMap((uv) => {
+        const ownedId = ownedIdBySpelling.get(
+          `${uv.vocabularyItem.hanzi} ${uv.vocabularyItem.pinyin}`,
+        );
+        return ownedId
+          ? [{ vocabularyItemId: ownedId, userVocabularyId: uv.id, dueAt: now }]
+          : [];
+      });
+
+      if (cardsToCreate.length > 0) {
+        await tx.reviewCard.createMany({ data: cardsToCreate });
+      }
     }
   });
 

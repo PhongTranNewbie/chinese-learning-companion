@@ -6,6 +6,20 @@ export async function getDashboardData(now = new Date()) {
   const userId = user?.id ?? null;
   const { startOfToday, startOfTomorrow } = getUtcDayRange(now);
 
+  // A guest owns no vocabulary — there are no join rows to read — so the
+  // dashboard is empty rather than counting the shared catalog.
+  if (!userId) {
+    return {
+      activeVocabularyCount: 0,
+      archivedVocabularyCount: 0,
+      dueReviewCount: 0,
+      reviewsCompletedToday: 0,
+      recentReviewEvents: [],
+      upcomingDueReviews: [],
+      levelBreakdown: [],
+    };
+  }
+
   const [
     activeVocabularyCount,
     archivedVocabularyCount,
@@ -15,13 +29,13 @@ export async function getDashboardData(now = new Date()) {
     upcomingDueReviews,
     levelBreakdown,
   ] = await Promise.all([
-    prisma.vocabularyItem.count({
+    prisma.userVocabulary.count({
       where: {
         userId,
         isArchived: false,
       },
     }),
-    prisma.vocabularyItem.count({
+    prisma.userVocabulary.count({
       where: {
         userId,
         isArchived: true,
@@ -33,7 +47,7 @@ export async function getDashboardData(now = new Date()) {
         dueAt: {
           lte: now,
         },
-        vocabularyItem: {
+        userVocabulary: {
           userId,
           isArchived: false,
         },
@@ -47,17 +61,19 @@ export async function getDashboardData(now = new Date()) {
           lt: startOfTomorrow,
         },
         reviewCard: {
-          vocabularyItem: {
+          userVocabulary: {
             userId,
             isArchived: false,
           },
         },
       },
     }),
+    // Read scheduling history through the join, then re-shape to the old
+    // "reviewCard.vocabularyItem" form so the dashboard page is untouched.
     prisma.reviewEvent.findMany({
       where: {
         reviewCard: {
-          vocabularyItem: {
+          userVocabulary: {
             userId,
             isArchived: false,
           },
@@ -66,7 +82,11 @@ export async function getDashboardData(now = new Date()) {
       include: {
         reviewCard: {
           include: {
-            vocabularyItem: true,
+            userVocabulary: {
+              include: {
+                vocabularyItem: true,
+              },
+            },
           },
         },
       },
@@ -74,19 +94,34 @@ export async function getDashboardData(now = new Date()) {
         reviewedAt: "desc",
       },
       take: 5,
-    }),
+    }).then((events) =>
+      events.map((event) => {
+        const { userVocabulary, ...reviewCard } = event.reviewCard;
+        return {
+          ...event,
+          reviewCard: {
+            ...reviewCard,
+            vocabularyItem: userVocabulary!.vocabularyItem,
+          },
+        };
+      }),
+    ),
     prisma.reviewCard.findMany({
       where: {
         status: "ACTIVE",
-        vocabularyItem: {
+        userVocabulary: {
           userId,
           isArchived: false,
         },
       },
       include: {
-        vocabularyItem: {
+        userVocabulary: {
           include: {
-            level: true,
+            vocabularyItem: {
+              include: {
+                level: true,
+              },
+            },
           },
         },
       },
@@ -94,15 +129,29 @@ export async function getDashboardData(now = new Date()) {
         dueAt: "asc",
       },
       take: 5,
-    }),
+    }).then((cards) =>
+      cards.map((card) => {
+        const { userVocabulary, ...rest } = card;
+        return {
+          ...rest,
+          vocabularyItem: userVocabulary!.vocabularyItem,
+        };
+      }),
+    ),
     prisma.level.findMany({
       include: {
         _count: {
           select: {
+            // Level lives on the shared catalog row, so count catalog items
+            // that have a join row for this user.
             vocabularyItems: {
               where: {
-                userId,
-                isArchived: false,
+                userVocabularies: {
+                  some: {
+                    userId,
+                    isArchived: false,
+                  },
+                },
               },
             },
           },

@@ -65,7 +65,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           name: true,
           _count: {
             select: {
-              vocabularyItems: {
+              userVocabularies: {
                 where: {
                   isArchived: false,
                 },
@@ -380,8 +380,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                       key={deck.id}
                       href={`/decks/${deck.id}`}
                       name={deck.name}
-                      detail={`${deck._count.vocabularyItems} word${
-                        deck._count.vocabularyItems === 1 ? "" : "s"
+                      detail={`${deck._count.userVocabularies} word${
+                        deck._count.userVocabularies === 1 ? "" : "s"
                       }`}
                       action="Manage"
                     />
@@ -418,7 +418,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
 async function getMemberStats(userId: string, now: Date) {
   const [vocabularyCount, deckCount, dueReviewCount] = await Promise.all([
-    prisma.vocabularyItem.count({
+    prisma.userVocabulary.count({
       where: {
         userId,
         isArchived: false,
@@ -436,7 +436,7 @@ async function getMemberStats(userId: string, now: Date) {
         dueAt: {
           lte: now,
         },
-        vocabularyItem: {
+        userVocabulary: {
           userId,
           isArchived: false,
         },

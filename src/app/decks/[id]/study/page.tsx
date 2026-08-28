@@ -35,66 +35,29 @@ export default async function DeckStudyPage({
       userId,
       isArchived: false,
     },
-    include: {
-      vocabularyItems: {
-        where: {
-          isArchived: false,
-          reviewCard: dueOnly
-            ? {
-                status: "ACTIVE",
-                dueAt: {
-                  lte: now,
-                },
-              }
-            : {
-                status: "ACTIVE",
-              },
-        },
-        include: {
-          reviewCard: true,
-          level: true,
-          characterNotes: {
-            orderBy: {
-              sortOrder: "asc",
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-        take: preferences.deckStudySessionSize,
-      },
-    },
   });
 
   if (!deck) {
     notFound();
   }
 
-  const cards = deck.vocabularyItems
-    .filter((item) => item.reviewCard)
-    .map((item) => ({
-      id: item.id,
-      reviewCardId: item.reviewCard!.id,
-      hanzi: item.hanzi,
-      pinyin: item.pinyin,
-      meaning: item.meaning,
-      levelName: item.level?.name ?? null,
-      exampleChinese: item.exampleChinese,
-      examplePinyin: item.examplePinyin,
-      exampleEnglish: item.exampleEnglish,
-      characterBreakdown: item.characterBreakdown,
-      wordFormationNote: item.wordFormationNote,
-      memoryMnemonic: item.memoryMnemonic,
-      characterNotes: item.characterNotes.map((note) => ({
-        id: note.id,
-        character: note.character,
-        components: note.components,
-        componentMeanings: note.componentMeanings,
-        mnemonicStory: note.mnemonicStory,
-      })),
-      reviewCount: item.reviewCard!.reviewCount,
-    }));
+  // A starter deck (userId null) is studied from the deck's own VocabularyItems;
+  // an owned deck is studied through the signed-in user's join rows for it.
+  const cards =
+    deck.userId !== null && user
+      ? await getOwnedStudyCards(
+          user.id,
+          deck.id,
+          dueOnly,
+          now,
+          preferences.deckStudySessionSize,
+        )
+      : await getStarterStudyCards(
+          deck.id,
+          dueOnly,
+          now,
+          preferences.deckStudySessionSize,
+        );
 
   return (
     <main className="bg-slate-50">
@@ -180,4 +143,160 @@ export default async function DeckStudyPage({
       </div>
     </main>
   );
+}
+
+/** Study a starter/template deck: read the deck's own VocabularyItems. */
+async function getStarterStudyCards(
+  deckId: string,
+  dueOnly: boolean,
+  now: Date,
+  take: number,
+) {
+  const items = await prisma.vocabularyItem.findMany({
+    where: {
+      deckId,
+      isArchived: false,
+      reviewCard: dueOnly
+        ? {
+            status: "ACTIVE",
+            dueAt: {
+              lte: now,
+            },
+          }
+        : {
+            status: "ACTIVE",
+          },
+    },
+    include: {
+      reviewCard: true,
+      level: true,
+      characterNotes: {
+        orderBy: {
+          sortOrder: "asc",
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+    take,
+  });
+
+  return items
+    .filter((item) => item.reviewCard)
+    .map((item) => ({
+      id: item.id,
+      reviewCardId: item.reviewCard!.id,
+      hanzi: item.hanzi,
+      pinyin: item.pinyin,
+      meaning: item.meaning,
+      levelName: item.level?.name ?? null,
+      exampleChinese: item.exampleChinese,
+      examplePinyin: item.examplePinyin,
+      exampleEnglish: item.exampleEnglish,
+      characterBreakdown: item.characterBreakdown,
+      wordFormationNote: item.wordFormationNote,
+      memoryMnemonic: item.memoryMnemonic,
+      characterNotes: item.characterNotes.map((note) => ({
+        id: note.id,
+        character: note.character,
+        components: note.components,
+        componentMeanings: note.componentMeanings,
+        mnemonicStory: note.mnemonicStory,
+      })),
+      reviewCount: item.reviewCard!.reviewCount,
+    }));
+}
+
+/**
+ * Study an owned deck through the signed-in user's join rows for it. Catalog
+ * scalars come from the join's catalog entry; the per-user mnemonic, meaning
+ * and review card come from the join itself. Card ids stay keyed to the legacy
+ * owned row, resolved by spelling, so the session behaves exactly as before.
+ */
+async function getOwnedStudyCards(
+  userId: string,
+  deckId: string,
+  dueOnly: boolean,
+  now: Date,
+  take: number,
+) {
+  const userVocabularies = await prisma.userVocabulary.findMany({
+    where: {
+      userId,
+      deckId,
+      isArchived: false,
+      reviewCard: dueOnly
+        ? {
+            status: "ACTIVE",
+            dueAt: {
+              lte: now,
+            },
+          }
+        : {
+            status: "ACTIVE",
+          },
+    },
+    include: {
+      reviewCard: true,
+      vocabularyItem: {
+        include: {
+          level: true,
+          characterNotes: {
+            orderBy: {
+              sortOrder: "asc",
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+    take,
+  });
+
+  if (userVocabularies.length === 0) {
+    return [];
+  }
+
+  const ownedRows = await prisma.vocabularyItem.findMany({
+    where: {
+      userId,
+      OR: userVocabularies.map((uv) => ({
+        hanzi: uv.vocabularyItem.hanzi,
+        pinyin: uv.vocabularyItem.pinyin,
+      })),
+    },
+    select: { id: true, hanzi: true, pinyin: true },
+  });
+  const ownedIdBySpelling = new Map(
+    ownedRows.map((row) => [`${row.hanzi} ${row.pinyin}`, row.id]),
+  );
+
+  return userVocabularies.map((uv) => ({
+    id:
+      ownedIdBySpelling.get(
+        `${uv.vocabularyItem.hanzi} ${uv.vocabularyItem.pinyin}`,
+      ) ?? uv.vocabularyItem.id,
+    reviewCardId: uv.reviewCard!.id,
+    hanzi: uv.vocabularyItem.hanzi,
+    pinyin: uv.vocabularyItem.pinyin,
+    meaning: uv.personalMeaning ?? uv.vocabularyItem.meaning,
+    levelName: uv.vocabularyItem.level?.name ?? null,
+    exampleChinese: uv.vocabularyItem.exampleChinese,
+    examplePinyin: uv.vocabularyItem.examplePinyin,
+    exampleEnglish: uv.vocabularyItem.exampleEnglish,
+    characterBreakdown: uv.vocabularyItem.characterBreakdown,
+    wordFormationNote: uv.vocabularyItem.wordFormationNote,
+    memoryMnemonic: uv.memoryMnemonic,
+    characterNotes: uv.vocabularyItem.characterNotes.map((note) => ({
+      id: note.id,
+      character: note.character,
+      components: note.components,
+      componentMeanings: note.componentMeanings,
+      mnemonicStory: note.mnemonicStory,
+    })),
+    reviewCount: uv.reviewCard!.reviewCount,
+  }));
 }

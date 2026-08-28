@@ -30,18 +30,7 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
           isArchived: false,
         },
         include: {
-          deck: {
-            include: {
-              vocabularyItems: {
-                where: {
-                  isArchived: false,
-                },
-                include: {
-                  reviewCard: true,
-                },
-              },
-            },
-          },
+          deck: true,
         },
         orderBy: [
           {
@@ -58,6 +47,66 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
   if (!course) {
     notFound();
   }
+
+  // A lesson's linked deck can be the user's own or a public/template deck.
+  // Owned decks count active words through the user's join rows; public decks
+  // keep counting their own VocabularyItems, exactly as before.
+  const linkedDeckIds = [
+    ...new Set(
+      course.lessons
+        .flatMap((lesson) => (lesson.deck ? [lesson.deck.id] : []))
+        .map((id) => id),
+    ),
+  ];
+  const [publicItems, ownedMemberships] = await Promise.all([
+    linkedDeckIds.length > 0
+      ? prisma.vocabularyItem.findMany({
+          where: {
+            deckId: { in: linkedDeckIds },
+            userId: null,
+            isArchived: false,
+          },
+          select: {
+            deckId: true,
+            reviewCard: { select: { status: true, dueAt: true } },
+          },
+        })
+      : Promise.resolve([]),
+    user && linkedDeckIds.length > 0
+      ? prisma.userVocabulary.findMany({
+          where: {
+            deckId: { in: linkedDeckIds },
+            userId: user.id,
+            isArchived: false,
+          },
+          select: {
+            deckId: true,
+            reviewCard: { select: { status: true, dueAt: true } },
+          },
+        })
+      : Promise.resolve([]),
+  ]);
+  const deckStats = new Map<
+    string,
+    { vocabularyCount: number; dueCount: number }
+  >();
+  for (const lesson of course.lessons) {
+    if (!lesson.deck || deckStats.has(lesson.deck.id)) {
+      continue;
+    }
+    const isPublicDeck = lesson.deck.userId === null;
+    const rows = isPublicDeck
+      ? publicItems.filter((item) => item.deckId === lesson.deck!.id)
+      : ownedMemberships.filter((item) => item.deckId === lesson.deck!.id);
+    deckStats.set(lesson.deck.id, {
+      vocabularyCount: rows.length,
+      dueCount: rows.filter(
+        (item) =>
+          item.reviewCard?.status === "ACTIVE" && item.reviewCard.dueAt <= now,
+      ).length,
+    });
+  }
+
   const activeLessonCount = course.lessons.length;
   const linkedDeckCount = course.lessons.filter(
     (lesson) => lesson.deck && shouldShowDeckStudyActions(lesson.deck),
@@ -152,13 +201,11 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
           {course.lessons.map((lesson, index) => {
             const deck = lesson.deck;
             const activeDeck = shouldShowDeckStudyActions(deck) ? deck : null;
-            const vocabularyCount = activeDeck?.vocabularyItems.length ?? 0;
-            const dueCount =
-              activeDeck?.vocabularyItems.filter(
-                (item) =>
-                  item.reviewCard?.status === "ACTIVE" &&
-                  item.reviewCard.dueAt <= now,
-              ).length ?? 0;
+            const deckStat = activeDeck
+              ? deckStats.get(activeDeck.id) ?? { vocabularyCount: 0, dueCount: 0 }
+              : null;
+            const vocabularyCount = deckStat?.vocabularyCount ?? 0;
+            const dueCount = deckStat?.dueCount ?? 0;
 
             return (
               <article

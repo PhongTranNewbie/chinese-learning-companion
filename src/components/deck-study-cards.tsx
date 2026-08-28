@@ -67,12 +67,17 @@ export function DeckStudyCards({
   canSaveProgress: boolean;
   showMemoryAid: boolean;
 }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isRevealed, setIsRevealed] = useState(false);
+  const [indexState, setIndexState] = useState(0);
+  const [revealedCardId, setRevealedCardId] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [reviewSessionId] = useState(createClientSessionId);
   const [selectedRatings, setSelectedRatings] = useState<Record<string, string>>({});
+  // Due-only sessions shrink the queue after a grade, so clamp the index to
+  // keep the next card in view instead of rendering past the end.
+  const currentIndex = Math.min(indexState, Math.max(0, cards.length - 1));
   const currentCard = cards[currentIndex];
+  // Keyed by card id so a freshly slid-in card starts unrevealed.
+  const isRevealed = revealedCardId === currentCard?.id;
 
   const progressLabel = useMemo(
     () => `Card ${currentIndex + 1} of ${cards.length}`,
@@ -81,8 +86,8 @@ export function DeckStudyCards({
   const progressPercent = ((currentIndex + 1) / cards.length) * 100;
 
   function goToCard(index: number) {
-    setCurrentIndex(index);
-    setIsRevealed(false);
+    setIndexState(index);
+    setRevealedCardId(null);
     setIsComplete(false);
   }
 
@@ -170,7 +175,7 @@ export function DeckStudyCards({
               </p>
               <button
                 type="button"
-                onClick={() => setIsRevealed(true)}
+                onClick={() => setRevealedCardId(currentCard.id)}
                 className="mt-5 inline-flex min-h-12 items-center justify-center rounded-md bg-teal-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
               >
                 Reveal answer

@@ -12,25 +12,33 @@ export default async function ReviewPage() {
   const userId = user?.id ?? null;
   const preferences = await getStudyPreferences(userId);
   const now = new Date();
+  // The queue is scoped through the signed-in user's join rows: catalog data
+  // comes from the join's catalog entry and per-user data from the join itself.
+  // Guests have no join rows (the "" sentinel matches none), consistent with the
+  // vocabulary list.
   const dueCards = await prisma.reviewCard.findMany({
     where: {
       status: "ACTIVE",
       dueAt: {
         lte: now,
       },
-      vocabularyItem: {
-        userId,
+      userVocabulary: {
+        userId: userId ?? "",
         isArchived: false,
       },
     },
     include: {
-      vocabularyItem: {
+      userVocabulary: {
         include: {
           deck: true,
-          level: true,
-          characterNotes: {
-            orderBy: {
-              sortOrder: "asc",
+          vocabularyItem: {
+            include: {
+              level: true,
+              characterNotes: {
+                orderBy: {
+                  sortOrder: "asc",
+                },
+              },
             },
           },
         },
@@ -41,28 +49,31 @@ export default async function ReviewPage() {
     },
     take: preferences.reviewSessionSize,
   });
-  const cards = dueCards.map((card) => ({
-    id: card.id,
-    hanzi: card.vocabularyItem.hanzi,
-    pinyin: card.vocabularyItem.pinyin,
-    meaning: card.vocabularyItem.meaning,
-    deckName: card.vocabularyItem.deck?.name ?? null,
-    levelName: card.vocabularyItem.level?.name ?? null,
-    exampleChinese: card.vocabularyItem.exampleChinese,
-    examplePinyin: card.vocabularyItem.examplePinyin,
-    exampleEnglish: card.vocabularyItem.exampleEnglish,
-    characterBreakdown: card.vocabularyItem.characterBreakdown,
-    wordFormationNote: card.vocabularyItem.wordFormationNote,
-    memoryMnemonic: card.vocabularyItem.memoryMnemonic,
-    characterNotes: card.vocabularyItem.characterNotes.map((note) => ({
-      id: note.id,
-      character: note.character,
-      components: note.components,
-      componentMeanings: note.componentMeanings,
-      mnemonicStory: note.mnemonicStory,
-    })),
-    reviewCount: card.reviewCount,
-  }));
+  const cards = dueCards.map((card) => {
+    const uv = card.userVocabulary!;
+    return {
+      id: card.id,
+      hanzi: uv.vocabularyItem.hanzi,
+      pinyin: uv.vocabularyItem.pinyin,
+      meaning: uv.personalMeaning ?? uv.vocabularyItem.meaning,
+      deckName: uv.deck?.name ?? null,
+      levelName: uv.vocabularyItem.level?.name ?? null,
+      exampleChinese: uv.vocabularyItem.exampleChinese,
+      examplePinyin: uv.vocabularyItem.examplePinyin,
+      exampleEnglish: uv.vocabularyItem.exampleEnglish,
+      characterBreakdown: uv.vocabularyItem.characterBreakdown,
+      wordFormationNote: uv.vocabularyItem.wordFormationNote,
+      memoryMnemonic: uv.memoryMnemonic,
+      characterNotes: uv.vocabularyItem.characterNotes.map((note) => ({
+        id: note.id,
+        character: note.character,
+        components: note.components,
+        componentMeanings: note.componentMeanings,
+        mnemonicStory: note.mnemonicStory,
+      })),
+      reviewCount: card.reviewCount,
+    };
+  });
 
   return (
     <main className="min-h-[calc(100vh-73px)] bg-slate-50 dark:bg-slate-900">

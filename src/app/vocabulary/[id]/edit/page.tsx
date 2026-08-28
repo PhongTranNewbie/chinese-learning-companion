@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { VocabularyCreateForm } from "@/components/vocabulary-create-form";
 import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
+import { findUserVocabularyForOwnedItem } from "@/lib/user-vocabulary";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +18,78 @@ export default async function EditVocabularyPage({
 }: EditVocabularyPageProps) {
   const user = await requireCurrentUser();
   const { id } = await params;
-  const [vocabularyItem, levels] = await Promise.all([
-    prisma.vocabularyItem.findFirst({
+
+  // The legacy owned row remains the URL/authorization anchor. Resolve it with
+  // "id + userId", then read the form's values through the join that backs it.
+  const vocabularyItem = await prisma.$transaction(async (tx) => {
+    const owned = await tx.vocabularyItem.findFirst({
       where: {
         id,
+        userId: user.id,
+      },
+      select: {
+        id: true,
+        hanzi: true,
+        pinyin: true,
+        reviewCard: {
+          select: {
+            userVocabularyId: true,
+          },
+        },
+      },
+    });
+
+    if (!owned) {
+      return null;
+    }
+
+    const userVocabularyId = await findUserVocabularyForOwnedItem(tx, {
+      userId: user.id,
+      hanzi: owned.hanzi,
+      pinyin: owned.pinyin,
+      reviewCardUserVocabularyId: owned.reviewCard?.userVocabularyId ?? null,
+    });
+
+    if (userVocabularyId) {
+      const userVocabulary = await tx.userVocabulary.findFirst({
+        where: {
+          id: userVocabularyId,
+          userId: user.id,
+        },
+        include: {
+          vocabularyItem: {
+            include: {
+              characterNotes: {
+                orderBy: {
+                  sortOrder: "asc",
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (userVocabulary) {
+        return {
+          // Catalog scalars come from the shared entry; per-user fields are
+          // overridden from the join. The legacy owned id stays the id the
+          // update action is bound to.
+          ...userVocabulary.vocabularyItem,
+          id: owned.id,
+          deckId: userVocabulary.deckId,
+          memoryMnemonic: userVocabulary.memoryMnemonic,
+          notes: userVocabulary.personalNotes,
+          meaning:
+            userVocabulary.personalMeaning ??
+            userVocabulary.vocabularyItem.meaning,
+        };
+      }
+    }
+
+    // No join yet: fall back to the legacy owned row's own fields.
+    return tx.vocabularyItem.findFirst({
+      where: {
+        id: owned.id,
         userId: user.id,
       },
       include: {
@@ -30,13 +99,8 @@ export default async function EditVocabularyPage({
           },
         },
       },
-    }),
-    prisma.level.findMany({
-      orderBy: {
-        sortOrder: "asc",
-      },
-    }),
-  ]);
+    });
+  });
 
   if (!vocabularyItem) {
     notFound();
@@ -49,14 +113,21 @@ export default async function EditVocabularyPage({
       ]
     : [{ userId: user.id, isArchived: false }];
 
-  const decks = await prisma.deck.findMany({
-    where: {
-      OR: deckFilters,
-    },
-    orderBy: {
-      name: "asc",
-    },
-  });
+  const [levels, decks] = await Promise.all([
+    prisma.level.findMany({
+      orderBy: {
+        sortOrder: "asc",
+      },
+    }),
+    prisma.deck.findMany({
+      where: {
+        OR: deckFilters,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    }),
+  ]);
 
   return (
     <main className="min-h-[calc(100vh-73px)] bg-slate-50 dark:bg-slate-900">
