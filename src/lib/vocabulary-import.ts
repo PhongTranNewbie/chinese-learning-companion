@@ -5,6 +5,12 @@ import { parseCharacterNotesInput } from "@/lib/character-notes";
 import { parseCsv } from "@/lib/csv";
 import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
+import {
+  ensureOwnedReviewCard,
+  findOwnedVocabularyItem,
+  resolveSharedCatalogItem,
+  upsertUserVocabulary,
+} from "@/lib/user-vocabulary";
 import { validateVocabularyImportRows } from "@/lib/vocabulary-import-validation";
 
 export type ImportDetailItem = {
@@ -86,6 +92,9 @@ export async function importVocabularyCsv(
       }
       seenRows.add(duplicateKey);
 
+      const hanzi = row.hanzi.trim();
+      const pinyin = row.pinyin.trim();
+
       const deckId = row.deck?.trim()
         ? await getOrCreateDeckId(tx, row.deck.trim(), user.id)
         : defaultDeckId;
@@ -93,32 +102,58 @@ export async function importVocabularyCsv(
         ? await getLevelId(tx, row.level.trim())
         : null;
 
-      const existing = await tx.vocabularyItem.findUnique({
-        where: {
-          hanzi_pinyin: {
-            hanzi: row.hanzi.trim(),
-            pinyin: row.pinyin.trim(),
-          },
+      const newMeaning = row.meaning.trim();
+      const newPartOfSpeech = normalizeOptional(row.partOfSpeech);
+      const newMeasureWord = normalizeOptional(row.measureWord);
+      const newExampleChinese = normalizeOptional(row.exampleChinese);
+      const newExamplePinyin = normalizeOptional(row.examplePinyin);
+      const newExampleEnglish = normalizeOptional(row.exampleEnglish);
+      const newCharacterBreakdown = normalizeOptional(row.characterBreakdown);
+      const newWordFormationNote = normalizeOptional(row.wordFormationNote);
+      const newMemoryMnemonic = normalizeOptional(row.memoryMnemonic);
+      const newNotes = normalizeOptional(row.notes);
+      const characterNotes = parseCharacterNotesInput(row.characterNotes);
+
+      // One shared catalog entry per (hanzi, pinyin), reused across users and
+      // only ever enriched - an import never rewrites a value someone else's
+      // study material already depends on.
+      const catalogItem = await resolveSharedCatalogItem(
+        tx,
+        {
+          hanzi,
+          pinyin,
+          meaning: newMeaning,
+          levelId,
+          partOfSpeech: newPartOfSpeech,
+          measureWord: newMeasureWord,
+          exampleChinese: newExampleChinese,
+          examplePinyin: newExamplePinyin,
+          exampleEnglish: newExampleEnglish,
+          characterBreakdown: newCharacterBreakdown,
+          wordFormationNote: newWordFormationNote,
         },
-        include: {
-          reviewCard: true,
-          characterNotes: true,
-        },
+        characterNotes,
+      );
+
+      // Merge into the importing user's own row. This used to look the spelling
+      // up globally, then claim an unowned row and move its deck/level - so an
+      // import could take over a shared entry or another user's word.
+      const existing = await findOwnedVocabularyItem(tx, {
+        userId: user.id,
+        hanzi,
+        pinyin,
       });
+
+      let ownedId: string;
+      let reviewCardId: string | null = null;
+      let finalMeaning = newMeaning;
+      let finalMemoryMnemonic = newMemoryMnemonic;
+      let finalNotes = newNotes;
+      let finalDeckId = deckId;
+      let finalSource: string | null = null;
 
       if (existing) {
         // UPSERT: Update existing vocabulary
-        const newMeaning = row.meaning.trim();
-        const newPartOfSpeech = normalizeOptional(row.partOfSpeech);
-        const newMeasureWord = normalizeOptional(row.measureWord);
-        const newExampleChinese = normalizeOptional(row.exampleChinese);
-        const newExamplePinyin = normalizeOptional(row.examplePinyin);
-        const newExampleEnglish = normalizeOptional(row.exampleEnglish);
-        const newCharacterBreakdown = normalizeOptional(row.characterBreakdown);
-        const newWordFormationNote = normalizeOptional(row.wordFormationNote);
-        const newMemoryMnemonic = normalizeOptional(row.memoryMnemonic);
-        const newNotes = normalizeOptional(row.notes);
-
         // Determine what should be updated
         const updates: Record<string, string | boolean | null> = {};
         let shouldUpdate = false;
@@ -181,11 +216,6 @@ export async function importVocabularyCsv(
           }
         }
 
-        if (!existing.userId) {
-          updates.userId = user.id;
-          shouldUpdate = true;
-        }
-
         if (existing.isArchived) {
           updates.isArchived = false;
           shouldUpdate = true;
@@ -201,7 +231,6 @@ export async function importVocabularyCsv(
           shouldUpdate = true;
         }
 
-        const characterNotes = parseCharacterNotesInput(row.characterNotes);
         if (characterNotes.length > 0 && existing.characterNotes.length === 0) {
           await tx.vocabularyCharacterNote.createMany({
             data: characterNotes.map((note) => ({
@@ -221,59 +250,81 @@ export async function importVocabularyCsv(
           }
           updated += 1;
           updatedItems.push({
-          hanzi: row.hanzi.trim(),
-          pinyin: row.pinyin.trim(),
-          reason: "Updated existing card details",
-        });
+            hanzi,
+            pinyin,
+            reason: "Updated existing card details",
+          });
         } else {
           skipped += 1;
           skippedItems.push({
-          hanzi: row.hanzi.trim(),
-          pinyin: row.pinyin.trim(),
-          reason: "Identical card already exists in database",
-        });
-        }
-
-        // Ensure review card exists (in case vocabulary was created without one)
-        if (!existing.reviewCard) {
-          await tx.reviewCard.create({
-            data: {
-              vocabularyItemId: existing.id,
-              dueAt: now,
-            },
+            hanzi,
+            pinyin,
+            reason: "Identical card already exists in database",
           });
         }
+
+        ownedId = existing.id;
+        reviewCardId = existing.reviewCard?.id ?? null;
+        finalMeaning = (updates.meaning as string | undefined) ?? existing.meaning;
+        finalMemoryMnemonic =
+          (updates.memoryMnemonic as string | undefined) ??
+          existing.memoryMnemonic;
+        finalNotes = (updates.notes as string | undefined) ?? existing.notes;
+        finalDeckId = (updates.deckId as string | undefined) ?? existing.deckId;
+        finalSource = existing.source;
       } else {
         // Create new vocabulary
-        await tx.vocabularyItem.create({
+        const createdItem = await tx.vocabularyItem.create({
           data: {
             userId: user.id,
-            hanzi: row.hanzi.trim(),
-            pinyin: row.pinyin.trim(),
-            meaning: row.meaning.trim(),
+            hanzi,
+            pinyin,
+            meaning: newMeaning,
             deckId,
             levelId,
-            partOfSpeech: normalizeOptional(row.partOfSpeech),
-            measureWord: normalizeOptional(row.measureWord),
-            exampleChinese: normalizeOptional(row.exampleChinese),
-            examplePinyin: normalizeOptional(row.examplePinyin),
-            exampleEnglish: normalizeOptional(row.exampleEnglish),
-            characterBreakdown: normalizeOptional(row.characterBreakdown),
-            wordFormationNote: normalizeOptional(row.wordFormationNote),
-            memoryMnemonic: normalizeOptional(row.memoryMnemonic),
-            notes: normalizeOptional(row.notes),
+            partOfSpeech: newPartOfSpeech,
+            measureWord: newMeasureWord,
+            exampleChinese: newExampleChinese,
+            examplePinyin: newExamplePinyin,
+            exampleEnglish: newExampleEnglish,
+            characterBreakdown: newCharacterBreakdown,
+            wordFormationNote: newWordFormationNote,
+            memoryMnemonic: newMemoryMnemonic,
+            notes: newNotes,
             characterNotes: {
-              create: parseCharacterNotesInput(row.characterNotes),
-            },
-            reviewCard: {
-              create: {
-                dueAt: now,
-              },
+              create: characterNotes,
             },
           },
+          select: { id: true },
         });
+        ownedId = createdItem.id;
         created += 1;
       }
+
+      // This user's own learning data for the shared entry.
+      const perUserData = {
+        deckId: finalDeckId,
+        personalMeaning:
+          finalMeaning === catalogItem.meaning ? null : finalMeaning,
+        memoryMnemonic: finalMemoryMnemonic,
+        personalNotes: finalNotes,
+        source: finalSource,
+        isArchived: false,
+      };
+      const userVocabulary = await upsertUserVocabulary(tx, {
+        userId: user.id,
+        vocabularyItemId: catalogItem.id,
+        create: perUserData,
+        update: perUserData,
+      });
+
+      // Ensure a review card exists (in case vocabulary was created without one)
+      await ensureOwnedReviewCard(tx, {
+        vocabularyItemId: ownedId,
+        reviewCardId,
+        userVocabularyId: userVocabulary.id,
+        dueAt: now,
+      });
     }
   });
 

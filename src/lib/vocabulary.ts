@@ -5,6 +5,14 @@ import { redirect } from "next/navigation";
 import { parseCharacterNotesInput } from "@/lib/character-notes";
 import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
+import {
+  detachUserVocabulary,
+  ensureOwnedReviewCard,
+  findOwnedVocabularyItem,
+  findUserVocabularyForOwnedItem,
+  resolveSharedCatalogItem,
+  upsertUserVocabulary,
+} from "@/lib/user-vocabulary";
 
 export type CreateVocabularyState = {
   errors?: Record<string, string>;
@@ -37,6 +45,20 @@ function readOptionalString(formData: FormData, field: string) {
 
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+/**
+ * Keep only values the form actually submitted.
+ *
+ * Adding a word is now idempotent, so a re-add updates the row the user already
+ * has instead of minting a second one - and a field left blank on the add form
+ * must not erase a mnemonic or note they wrote earlier. Clearing a value is what
+ * the edit form is for.
+ */
+function onlySubmitted<T extends Record<string, unknown>>(values: T) {
+  return Object.fromEntries(
+    Object.entries(values).filter(([, value]) => value !== null),
+  ) as Partial<T>;
 }
 
 async function getOwnedDeckId(deckId: string | null, userId: string) {
@@ -100,13 +122,13 @@ export async function createVocabularyItem(
   const now = new Date();
 
   await prisma.$transaction(async (tx) => {
-    await tx.vocabularyItem.create({
-      data: {
-        userId: user.id,
+    // 1. One shared catalog entry per (hanzi, pinyin) - reused if it exists.
+    const catalogItem = await resolveSharedCatalogItem(
+      tx,
+      {
         hanzi,
         pinyin,
         meaning,
-        deckId,
         levelId: optionalValues.levelId,
         partOfSpeech: optionalValues.partOfSpeech,
         measureWord: optionalValues.measureWord,
@@ -115,18 +137,99 @@ export async function createVocabularyItem(
         exampleEnglish: optionalValues.exampleEnglish,
         characterBreakdown: optionalValues.characterBreakdown,
         wordFormationNote: optionalValues.wordFormationNote,
-        memoryMnemonic: optionalValues.memoryMnemonic,
-        notes: optionalValues.notes,
-        reviewCard: {
-          create: {
-            dueAt: now,
-          },
-        },
-        characterNotes: {
-          create: characterNotes,
-        },
       },
+      characterNotes,
+    );
+
+    // 2. This user's own learning data for that entry.
+    const perUserData = {
+      deckId,
+      // Only recorded when the user actually disagrees with the shared meaning.
+      personalMeaning: meaning === catalogItem.meaning ? null : meaning,
+      memoryMnemonic: optionalValues.memoryMnemonic,
+      personalNotes: optionalValues.notes,
+      isArchived: false,
+    };
+    const userVocabulary = await upsertUserVocabulary(tx, {
+      userId: user.id,
+      vocabularyItemId: catalogItem.id,
+      create: perUserData,
+      // Enrich, never erase: see onlySubmitted().
+      update: onlySubmitted(perUserData),
     });
+
+    // 3. The user's legacy owned row, still the source for today's read paths.
+    const owned = await findOwnedVocabularyItem(tx, {
+      userId: user.id,
+      hanzi,
+      pinyin,
+    });
+
+    const legacyData = {
+      hanzi,
+      pinyin,
+      meaning,
+      deckId,
+      levelId: optionalValues.levelId,
+      partOfSpeech: optionalValues.partOfSpeech,
+      measureWord: optionalValues.measureWord,
+      exampleChinese: optionalValues.exampleChinese,
+      examplePinyin: optionalValues.examplePinyin,
+      exampleEnglish: optionalValues.exampleEnglish,
+      characterBreakdown: optionalValues.characterBreakdown,
+      wordFormationNote: optionalValues.wordFormationNote,
+      memoryMnemonic: optionalValues.memoryMnemonic,
+      notes: optionalValues.notes,
+      isArchived: false,
+    };
+
+    if (owned) {
+      await tx.vocabularyItem.update({
+        where: { id: owned.id },
+        data: onlySubmitted(legacyData),
+      });
+      // Only replace the breakdown when the form actually supplied one.
+      if (characterNotes.length > 0) {
+        await tx.vocabularyCharacterNote.deleteMany({
+          where: { vocabularyItemId: owned.id },
+        });
+        await tx.vocabularyCharacterNote.createMany({
+          data: characterNotes.map((note) => ({
+            ...note,
+            vocabularyItemId: owned.id,
+          })),
+        });
+      }
+    }
+
+    const ownedId =
+      owned?.id ??
+      (
+        await tx.vocabularyItem.create({
+          data: {
+            userId: user.id,
+            ...legacyData,
+            characterNotes: { create: characterNotes },
+          },
+          select: { id: true },
+        })
+      ).id;
+
+    const reviewCardId = await ensureOwnedReviewCard(tx, {
+      vocabularyItemId: ownedId,
+      reviewCardId: owned?.reviewCard?.id ?? null,
+      userVocabularyId: userVocabulary.id,
+      dueAt: now,
+    });
+
+    // Re-adding an archived word used to mint a fresh, immediately-due row.
+    // Now that the add is idempotent, put the existing card back in service.
+    if (owned?.isArchived && owned.reviewCard?.status === "ARCHIVED") {
+      await tx.reviewCard.update({
+        where: { id: reviewCardId },
+        data: { status: "ACTIVE", dueAt: now },
+      });
+    }
   });
 
   revalidatePath("/vocabulary");
@@ -168,6 +271,12 @@ export async function updateVocabularyItem(
     },
     select: {
       id: true,
+      reviewCard: {
+        select: {
+          id: true,
+          userVocabularyId: true,
+        },
+      },
     },
   });
 
@@ -187,8 +296,59 @@ export async function updateVocabularyItem(
   const characterNotes = parseCharacterNotesInput(
     readOptionalString(formData, "characterNotes"),
   );
+  const now = new Date();
 
   await prisma.$transaction(async (tx) => {
+    const catalogItem = await resolveSharedCatalogItem(
+      tx,
+      {
+        hanzi,
+        pinyin,
+        meaning,
+        levelId: optionalValues.levelId,
+        partOfSpeech: optionalValues.partOfSpeech,
+        measureWord: optionalValues.measureWord,
+        exampleChinese: optionalValues.exampleChinese,
+        examplePinyin: optionalValues.examplePinyin,
+        exampleEnglish: optionalValues.exampleEnglish,
+        characterBreakdown: optionalValues.characterBreakdown,
+        wordFormationNote: optionalValues.wordFormationNote,
+      },
+      characterNotes,
+    );
+
+    // Editing hanzi/pinyin repoints the word at a different catalog entry, so
+    // the previous join row no longer describes anything the user studies.
+    const previousUserVocabularyId = existing.reviewCard?.userVocabularyId;
+
+    if (previousUserVocabularyId) {
+      const previous = await tx.userVocabulary.findFirst({
+        where: {
+          id: previousUserVocabularyId,
+          userId: user.id,
+          vocabularyItemId: { not: catalogItem.id },
+        },
+        select: { id: true },
+      });
+
+      if (previous) {
+        await detachUserVocabulary(tx, previous.id);
+      }
+    }
+
+    const perUserData = {
+      deckId,
+      personalMeaning: meaning === catalogItem.meaning ? null : meaning,
+      memoryMnemonic: optionalValues.memoryMnemonic,
+      personalNotes: optionalValues.notes,
+    };
+    const userVocabulary = await upsertUserVocabulary(tx, {
+      userId: user.id,
+      vocabularyItemId: catalogItem.id,
+      create: { ...perUserData, isArchived: false },
+      update: perUserData,
+    });
+
     await tx.vocabularyItem.updateMany({
       where: {
         id: vocabularyItemId,
@@ -227,6 +387,13 @@ export async function updateVocabularyItem(
         })),
       });
     }
+
+    await ensureOwnedReviewCard(tx, {
+      vocabularyItemId,
+      reviewCardId: existing.reviewCard?.id ?? null,
+      userVocabularyId: userVocabulary.id,
+      dueAt: now,
+    });
   });
 
   revalidatePath("/vocabulary");
@@ -245,9 +412,12 @@ export async function archiveVocabularyItem(vocabularyItemId: string) {
       },
       select: {
         id: true,
+        hanzi: true,
+        pinyin: true,
         reviewCard: {
           select: {
             id: true,
+            userVocabularyId: true,
           },
         },
       },
@@ -266,6 +436,28 @@ export async function archiveVocabularyItem(vocabularyItemId: string) {
         isArchived: true,
       },
     });
+
+    // Archiving is per-user: the shared catalog entry is never touched, so other
+    // users studying the same word are unaffected.
+    const userVocabularyId = await findUserVocabularyForOwnedItem(tx, {
+      userId: user.id,
+      hanzi: vocabularyItem.hanzi,
+      pinyin: vocabularyItem.pinyin,
+      reviewCardUserVocabularyId:
+        vocabularyItem.reviewCard?.userVocabularyId ?? null,
+    });
+
+    if (userVocabularyId) {
+      await tx.userVocabulary.updateMany({
+        where: {
+          id: userVocabularyId,
+          userId: user.id,
+        },
+        data: {
+          isArchived: true,
+        },
+      });
+    }
 
     if (vocabularyItem.reviewCard) {
       await tx.reviewCard.update({

@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
+import {
+  ensureOwnedReviewCard,
+  findOwnedVocabularyItem,
+  resolveSharedCatalogItem,
+  upsertUserVocabulary,
+} from "@/lib/user-vocabulary";
 
 export type DeckFormState = {
   errors?: Record<string, string>;
@@ -248,27 +254,22 @@ export async function copyPublicDeckToLibrary(publicDeckId: string) {
     });
 
     for (const item of publicDeck.vocabularyItems) {
-      const characterNotes =
-        item.characterNotes.length > 0
-          ? {
-              create: item.characterNotes.map((note) => ({
-                character: note.character,
-                components: note.components,
-                componentMeanings: note.componentMeanings,
-                mnemonicStory: note.mnemonicStory,
-                sortOrder: note.sortOrder,
-              })),
-            }
-          : undefined;
+      const templateNotes = item.characterNotes.map((note) => ({
+        character: note.character,
+        components: note.components,
+        componentMeanings: note.componentMeanings,
+        mnemonicStory: note.mnemonicStory,
+        sortOrder: note.sortOrder,
+      }));
 
-      await tx.vocabularyItem.create({
-        data: {
-          userId: user.id,
-          deckId: deck.id,
-          levelId: item.levelId,
+      // Reuse the shared catalog entry rather than cloning it for this user.
+      const catalogItem = await resolveSharedCatalogItem(
+        tx,
+        {
           hanzi: item.hanzi,
           pinyin: item.pinyin,
           meaning: item.meaning,
+          levelId: item.levelId,
           partOfSpeech: item.partOfSpeech,
           measureWord: item.measureWord,
           exampleChinese: item.exampleChinese,
@@ -276,17 +277,86 @@ export async function copyPublicDeckToLibrary(publicDeckId: string) {
           exampleEnglish: item.exampleEnglish,
           characterBreakdown: item.characterBreakdown,
           wordFormationNote: item.wordFormationNote,
+        },
+        templateNotes,
+      );
+
+      const owned = await findOwnedVocabularyItem(tx, {
+        userId: user.id,
+        hanzi: item.hanzi,
+        pinyin: item.pinyin,
+      });
+
+      // Copying puts the word in the new deck, but a word the user already
+      // studies keeps its own mnemonic, notes and review history.
+      const userVocabulary = await upsertUserVocabulary(tx, {
+        userId: user.id,
+        vocabularyItemId: catalogItem.id,
+        create: {
+          deckId: deck.id,
           memoryMnemonic: item.memoryMnemonic,
-          notes: item.notes,
+          personalNotes: item.notes,
           source: item.source,
-          reviewCard: {
-            create: {
-              dueAt: now,
-            },
-          },
-          characterNotes,
+          isArchived: false,
+        },
+        update: {
+          deckId: deck.id,
+          isArchived: false,
         },
       });
+
+      if (owned) {
+        await tx.vocabularyItem.update({
+          where: { id: owned.id },
+          data: { deckId: deck.id, isArchived: false },
+        });
+      }
+
+      const ownedId =
+        owned?.id ??
+        (
+          await tx.vocabularyItem.create({
+            data: {
+              userId: user.id,
+              deckId: deck.id,
+              levelId: item.levelId,
+              hanzi: item.hanzi,
+              pinyin: item.pinyin,
+              meaning: item.meaning,
+              partOfSpeech: item.partOfSpeech,
+              measureWord: item.measureWord,
+              exampleChinese: item.exampleChinese,
+              examplePinyin: item.examplePinyin,
+              exampleEnglish: item.exampleEnglish,
+              characterBreakdown: item.characterBreakdown,
+              wordFormationNote: item.wordFormationNote,
+              memoryMnemonic: item.memoryMnemonic,
+              notes: item.notes,
+              source: item.source,
+              characterNotes:
+                templateNotes.length > 0
+                  ? { create: templateNotes }
+                  : undefined,
+            },
+            select: { id: true },
+          })
+        ).id;
+
+      const reviewCardId = await ensureOwnedReviewCard(tx, {
+        vocabularyItemId: ownedId,
+        reviewCardId: owned?.reviewCard?.id ?? null,
+        userVocabularyId: userVocabulary.id,
+        dueAt: now,
+      });
+
+      // A copy used to produce a fresh, immediately-due card. Reusing an
+      // archived word's card would otherwise leave it stuck out of rotation.
+      if (owned?.isArchived && owned.reviewCard?.status === "ARCHIVED") {
+        await tx.reviewCard.update({
+          where: { id: reviewCardId },
+          data: { status: "ACTIVE", dueAt: now },
+        });
+      }
     }
 
     return deck;
