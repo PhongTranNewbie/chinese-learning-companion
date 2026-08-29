@@ -97,37 +97,29 @@ export default async function DecksPage({ searchParams }: DecksPageProps) {
             vocabularyItems: deck.userVocabularies,
           })),
         )
-      : prisma.deck.findMany({
-          where,
-          include: {
-            _count: {
-              select: {
-                vocabularyItems: {
-                  where: {
-                    isArchived: false,
-                  },
+      : prisma.deck
+          .findMany({
+            where,
+            include: {
+              _count: {
+                select: {
+                  vocabularyItems: true,
                 },
               },
             },
-            vocabularyItems: {
-              where: {
-                isArchived: false,
-                reviewCard: {
-                  status: "ACTIVE",
-                  dueAt: {
-                    lte: now,
-                  },
-                },
-              },
-              select: {
-                id: true,
-              },
-            },
-          },
-          orderBy: getDeckSortOrder(sort, false),
-          skip,
-          take: pageSize,
-        }),
+            orderBy: getDeckSortOrder(sort, false),
+            skip,
+            take: pageSize,
+          })
+          .then((items) =>
+            // Starter/template decks carry no per-user cards (Phase 5 removed
+            // template cards), so the list renders their catalog word count and
+            // no due rows.
+            items.map((deck) => ({
+              ...deck,
+              vocabularyItems: [],
+            })),
+          ),
     isMember
       ? prisma.deck.findMany({
           where: {
@@ -137,11 +129,7 @@ export default async function DecksPage({ searchParams }: DecksPageProps) {
           include: {
             _count: {
               select: {
-                vocabularyItems: {
-                  where: {
-                    isArchived: false,
-                  },
-                },
+                vocabularyItems: true,
               },
             },
           },

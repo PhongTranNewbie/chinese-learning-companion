@@ -88,11 +88,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           name: true,
           _count: {
             select: {
-              vocabularyItems: {
-                where: {
-                  isArchived: false,
-                },
-              },
+              vocabularyItems: true,
             },
           },
         },

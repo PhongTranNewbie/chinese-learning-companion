@@ -16,7 +16,6 @@ model User {
   accounts        Account[]
   sessions        Session[]
   studyPreference UserStudyPreference?
-  vocabularyItems VocabularyItem[]
   userVocabularies UserVocabulary[]
   decks           Deck[]
   courses         Course[]
@@ -137,10 +136,13 @@ model Level {
   createdAt       DateTime         @default(now())
 }
 
+/// The shared catalog of words. Language data is global; per-user learning data
+/// (mnemonic, personal notes/meaning, deck membership, review state) lives on
+/// the "UserVocabulary" join so many users can study the same word
+/// independently. "@@unique([hanzi, pinyin])" is the contract that there is one
+/// catalog entry per word.
 model VocabularyItem {
   id             String          @id @default(cuid())
-  userId         String?
-  user           User?           @relation(fields: [userId], references: [id])
   deckId         String?
   deck           Deck?           @relation(fields: [deckId], references: [id])
   levelId        String?
@@ -155,18 +157,14 @@ model VocabularyItem {
   exampleEnglish String?
   characterBreakdown String?
   wordFormationNote  String?
-  memoryMnemonic     String?
-  notes          String?
-  source         String?
-  isArchived     Boolean         @default(false)
-  reviewCard     ReviewCard?
+  catalogMnemonic    String?
+  catalogNotes       String?
   characterNotes VocabularyCharacterNote[]
   tags           VocabularyTag[]
   userVocabularies UserVocabulary[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
-  @@index([userId])
   @@index([deckId])
   @@index([levelId])
   @@index([hanzi])
@@ -175,14 +173,11 @@ model VocabularyItem {
 
 /// Per-user learning data for a catalog word.
 ///
-/// Added in the expand step of the catalog/per-user split: "VocabularyItem"
-/// currently mixes shared language data with one owner's learning data, so two
-/// users cannot study the same word independently. This join is where each
-/// user's own mnemonic, notes, deck membership and review state will live.
-///
-/// Nothing reads or writes it yet - the backfill and the code changes follow in
-/// later phases, while "VocabularyItem.userId" and its per-user columns stay in
-/// place so the running app is unaffected.
+/// The join side of the catalog/per-user split: "VocabularyItem" holds the
+/// shared language data and "UserVocabulary" holds each user's own mnemonic,
+/// personal notes/meaning, deck membership and review state, so two users can
+/// study the same word independently. Exactly one join row per (user, word);
+/// exactly one ReviewCard hangs off it.
 model UserVocabulary {
   id               String         @id @default(cuid())
   userId           String
@@ -240,26 +235,21 @@ model VocabularyTag {
 }
 
 model ReviewCard {
-  id               String         @id @default(cuid())
-  vocabularyItemId String         @unique
-  vocabularyItem   VocabularyItem @relation(fields: [vocabularyItemId], references: [id], onDelete: Cascade)
-  // Nullable for now: the review cards that exist today still hang off
-  // "vocabularyItemId", and both links coexist until the backfill has run and
-  // every read/write path has moved over. Postgres treats NULLs as distinct, so
-  // @unique already models the eventual one-card-per-UserVocabulary rule without
-  // rejecting the existing rows.
-  userVocabularyId String?        @unique
-  userVocabulary   UserVocabulary? @relation(fields: [userVocabularyId], references: [id], onDelete: Cascade)
+  id               String          @id @default(cuid())
+  // One card per per-user join: SRS state is per-user, so the card hangs off
+  // the join row, not off the shared catalog entry.
+  userVocabularyId String          @unique
+  userVocabulary   UserVocabulary  @relation(fields: [userVocabularyId], references: [id], onDelete: Cascade)
   dueAt            DateTime
-  intervalDays     Int            @default(0)
-  easeFactor       Float          @default(2.5)
-  reviewCount      Int            @default(0)
-  lapseCount       Int            @default(0)
+  intervalDays     Int             @default(0)
+  easeFactor       Float           @default(2.5)
+  reviewCount      Int             @default(0)
+  lapseCount       Int             @default(0)
   lastReviewedAt   DateTime?
-  status           ReviewStatus   @default(ACTIVE)
+  status           ReviewStatus    @default(ACTIVE)
   reviewEvents     ReviewEvent[]
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   @@index([dueAt])
   @@index([status, dueAt])

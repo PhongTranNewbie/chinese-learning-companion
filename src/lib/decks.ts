@@ -5,8 +5,7 @@ import { redirect } from "next/navigation";
 import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import {
-  ensureOwnedReviewCard,
-  findOwnedVocabularyItem,
+  ensureReviewCard,
   resolveSharedCatalogItem,
   upsertUserVocabulary,
 } from "@/lib/user-vocabulary";
@@ -133,12 +132,6 @@ export async function resetDeckReviewProgress(
       },
       select: {
         id: true,
-        vocabularyItem: {
-          select: {
-            hanzi: true,
-            pinyin: true,
-          },
-        },
         reviewCard: {
           select: {
             id: true,
@@ -188,38 +181,15 @@ export async function resetDeckReviewProgress(
     );
 
     if (userVocabulariesWithoutCards.length > 0) {
-      // Defensive: Phase 3 writes always create a card for a join row, but if
-      // one is missing, create it linked to the join. The card still needs the
-      // legacy owned row's id until Phase 5 drops "ReviewCard.vocabularyItemId".
-      const ownedRows = await tx.vocabularyItem.findMany({
-        where: {
-          userId: user.id,
-          isArchived: false,
-          deckId,
-        },
-        select: {
-          id: true,
-          hanzi: true,
-          pinyin: true,
-        },
+      // Defensive: Phase 5 writes always create a card for a join row, but if
+      // one is missing, create it hanging off the join (the card's only anchor
+      // now that "ReviewCard.vocabularyItemId" is gone).
+      await tx.reviewCard.createMany({
+        data: userVocabulariesWithoutCards.map((uv) => ({
+          userVocabularyId: uv.id,
+          dueAt: now,
+        })),
       });
-
-      const ownedIdBySpelling = new Map(
-        ownedRows.map((row) => [`${row.hanzi} ${row.pinyin}`, row.id]),
-      );
-
-      const cardsToCreate = userVocabulariesWithoutCards.flatMap((uv) => {
-        const ownedId = ownedIdBySpelling.get(
-          `${uv.vocabularyItem.hanzi} ${uv.vocabularyItem.pinyin}`,
-        );
-        return ownedId
-          ? [{ vocabularyItemId: ownedId, userVocabularyId: uv.id, dueAt: now }]
-          : [];
-      });
-
-      if (cardsToCreate.length > 0) {
-        await tx.reviewCard.createMany({ data: cardsToCreate });
-      }
     }
   });
 
@@ -239,9 +209,6 @@ export async function copyPublicDeckToLibrary(publicDeckId: string) {
     },
     include: {
       vocabularyItems: {
-        where: {
-          isArchived: false,
-        },
         include: {
           characterNotes: {
             orderBy: {
@@ -315,22 +282,15 @@ export async function copyPublicDeckToLibrary(publicDeckId: string) {
         templateNotes,
       );
 
-      const owned = await findOwnedVocabularyItem(tx, {
-        userId: user.id,
-        hanzi: item.hanzi,
-        pinyin: item.pinyin,
-      });
-
       // Copying puts the word in the new deck, but a word the user already
-      // studies keeps its own mnemonic, notes and review history.
+      // studies keeps its own mnemonic, notes and review history. The catalog
+      // entry already carries the template's shared mnemonic/notes, so the join
+      // only needs the new deck membership.
       const userVocabulary = await upsertUserVocabulary(tx, {
         userId: user.id,
         vocabularyItemId: catalogItem.id,
         create: {
           deckId: deck.id,
-          memoryMnemonic: item.memoryMnemonic,
-          personalNotes: item.notes,
-          source: item.source,
           isArchived: false,
         },
         update: {
@@ -339,58 +299,17 @@ export async function copyPublicDeckToLibrary(publicDeckId: string) {
         },
       });
 
-      if (owned) {
-        await tx.vocabularyItem.update({
-          where: { id: owned.id },
-          data: { deckId: deck.id, isArchived: false },
-        });
-      }
-
-      const ownedId =
-        owned?.id ??
-        (
-          await tx.vocabularyItem.create({
-            data: {
-              userId: user.id,
-              deckId: deck.id,
-              levelId: item.levelId,
-              hanzi: item.hanzi,
-              pinyin: item.pinyin,
-              meaning: item.meaning,
-              partOfSpeech: item.partOfSpeech,
-              measureWord: item.measureWord,
-              exampleChinese: item.exampleChinese,
-              examplePinyin: item.examplePinyin,
-              exampleEnglish: item.exampleEnglish,
-              characterBreakdown: item.characterBreakdown,
-              wordFormationNote: item.wordFormationNote,
-              memoryMnemonic: item.memoryMnemonic,
-              notes: item.notes,
-              source: item.source,
-              characterNotes:
-                templateNotes.length > 0
-                  ? { create: templateNotes }
-                  : undefined,
-            },
-            select: { id: true },
-          })
-        ).id;
-
-      const reviewCardId = await ensureOwnedReviewCard(tx, {
-        vocabularyItemId: ownedId,
-        reviewCardId: owned?.reviewCard?.id ?? null,
+      await ensureReviewCard(tx, {
         userVocabularyId: userVocabulary.id,
         dueAt: now,
       });
 
       // A copy used to produce a fresh, immediately-due card. Reusing an
       // archived word's card would otherwise leave it stuck out of rotation.
-      if (owned?.isArchived && owned.reviewCard?.status === "ARCHIVED") {
-        await tx.reviewCard.update({
-          where: { id: reviewCardId },
-          data: { status: "ACTIVE", dueAt: now },
-        });
-      }
+      await tx.reviewCard.updateMany({
+        where: { userVocabularyId: userVocabulary.id, status: "ARCHIVED" },
+        data: { status: "ACTIVE", dueAt: now },
+      });
     }
 
     return deck;

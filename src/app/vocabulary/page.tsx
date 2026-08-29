@@ -107,32 +107,10 @@ export default async function VocabularyPage({
       take: pageSize,
     });
 
-    if (userVocabularies.length === 0) {
-      return [];
-    }
-
-    // The vocabulary URLs stay keyed to the legacy owned row (Phase 4), which
-    // is not the join's catalog entry. Resolve each word's owned id by spelling
-    // so the list keeps producing the same hrefs.
-    const ownedRows = await prisma.vocabularyItem.findMany({
-      where: {
-        userId: userId ?? "",
-        OR: userVocabularies.map((uv) => ({
-          hanzi: uv.vocabularyItem.hanzi,
-          pinyin: uv.vocabularyItem.pinyin,
-        })),
-      },
-      select: { id: true, hanzi: true, pinyin: true },
-    });
-    const ownedIdBySpelling = new Map(
-      ownedRows.map((row) => [`${row.hanzi} ${row.pinyin}`, row.id]),
-    );
-
     return userVocabularies.map((uv) => ({
-      id:
-        ownedIdBySpelling.get(
-          `${uv.vocabularyItem.hanzi} ${uv.vocabularyItem.pinyin}`,
-        ) ?? uv.vocabularyItem.id,
+      // The word detail URL points at the catalog entry (the shared id), which
+      // is where the detail page, edit page and archive action all live now.
+      id: uv.vocabularyItem.id,
       hanzi: uv.vocabularyItem.hanzi,
       pinyin: uv.vocabularyItem.pinyin,
       meaning: uv.personalMeaning ?? uv.vocabularyItem.meaning,

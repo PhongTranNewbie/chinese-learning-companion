@@ -58,24 +58,24 @@ export default async function DeckDetailPage({
   const canMutateDeck = Boolean(user && !isPublicDeck);
   const showResetProgress = canMutateDeck && !deck.isArchived;
   const now = new Date();
-  // Public/template decks keep reading their own VocabularyItems; an owned deck
-  // reads the signed-in user's join rows for this deck.
+  // A public/template deck lists its shared catalog items (they carry no
+  // per-user cards); an owned deck reads the signed-in user's join rows for it.
   const vocabularyItems =
     !isPublicDeck && user
       ? await getOwnedDeckItems(user.id, deck.id)
-      : await prisma.vocabularyItem.findMany({
-          where: {
-            deckId: deck.id,
-            isArchived: false,
-          },
-          include: {
-            level: true,
-            reviewCard: true,
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-        });
+      : await prisma.vocabularyItem
+          .findMany({
+            where: {
+              deckId: deck.id,
+            },
+            include: {
+              level: true,
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+          })
+          .then((items) => items.map((item) => ({ ...item, reviewCard: null })));
   const activeWordCount = vocabularyItems.length;
   const dueWordCount = vocabularyItems.filter(
     (item) =>
@@ -252,7 +252,9 @@ export default async function DeckDetailPage({
                   <th className="px-4 py-3 font-semibold">Word</th>
                   <th className="px-4 py-3 font-semibold">Meaning</th>
                   <th className="px-4 py-3 font-semibold">Level</th>
-                  <th className="px-4 py-3 font-semibold">Next review</th>
+                  {!isPublicDeck ? (
+                    <th className="px-4 py-3 font-semibold">Next review</th>
+                  ) : null}
                   <th className="px-4 py-3 font-semibold">Details</th>
                 </tr>
               </thead>
@@ -278,9 +280,11 @@ export default async function DeckDetailPage({
                         {item.level?.name ?? "No level"}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-slate-600">
-                      {formatReviewCardDate(item.reviewCard)}
-                    </td>
+                    {!isPublicDeck ? (
+                      <td className="px-4 py-4 text-slate-600">
+                        {formatReviewCardDate(item.reviewCard)}
+                      </td>
+                    ) : null}
                     <td className="px-4 py-4">
                       <Link
                         href={`/vocabulary/${item.id}`}
@@ -339,9 +343,8 @@ export default async function DeckDetailPage({
 /**
  * An owned deck's active words come from the user's join rows for that deck.
  * Catalog scalars read through the join's catalog entry; per-user meaning and
- * the review card come from the join itself. The word detail URLs stay keyed to
- * the legacy owned row (Phase 4), which is not the catalog entry, so each word's
- * owned id is resolved by spelling to keep producing the same hrefs.
+ * the review card come from the join itself. Word detail URLs point at the
+ * catalog entry (the shared id).
  */
 async function getOwnedDeckItems(userId: string, deckId: string) {
   const userVocabularies = await prisma.userVocabulary.findMany({
@@ -363,29 +366,8 @@ async function getOwnedDeckItems(userId: string, deckId: string) {
     },
   });
 
-  if (userVocabularies.length === 0) {
-    return [];
-  }
-
-  const ownedRows = await prisma.vocabularyItem.findMany({
-    where: {
-      userId,
-      OR: userVocabularies.map((uv) => ({
-        hanzi: uv.vocabularyItem.hanzi,
-        pinyin: uv.vocabularyItem.pinyin,
-      })),
-    },
-    select: { id: true, hanzi: true, pinyin: true },
-  });
-  const ownedIdBySpelling = new Map(
-    ownedRows.map((row) => [`${row.hanzi} ${row.pinyin}`, row.id]),
-  );
-
   return userVocabularies.map((uv) => ({
-    id:
-      ownedIdBySpelling.get(
-        `${uv.vocabularyItem.hanzi} ${uv.vocabularyItem.pinyin}`,
-      ) ?? uv.vocabularyItem.id,
+    id: uv.vocabularyItem.id,
     hanzi: uv.vocabularyItem.hanzi,
     pinyin: uv.vocabularyItem.pinyin,
     meaning: uv.personalMeaning ?? uv.vocabularyItem.meaning,

@@ -6,10 +6,8 @@ import { parseCsv } from "@/lib/csv";
 import { requireCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import {
-  ensureOwnedReviewCard,
-  findOwnedVocabularyItem,
+  ensureReviewCard,
   resolveSharedCatalogItem,
-  upsertUserVocabulary,
 } from "@/lib/user-vocabulary";
 import { validateVocabularyImportRows } from "@/lib/vocabulary-import-validation";
 
@@ -135,83 +133,48 @@ export async function importVocabularyCsv(
         characterNotes,
       );
 
-      // Merge into the importing user's own row. This used to look the spelling
-      // up globally, then claim an unowned row and move its deck/level - so an
-      // import could take over a shared entry or another user's word.
-      const existing = await findOwnedVocabularyItem(tx, {
-        userId: user.id,
-        hanzi,
-        pinyin,
+      // Merge into the importing user's own join row. Importing used to look the
+      // spelling up globally and claim an owned row; now the per-user data lives
+      // on the join itself, and catalog columns were already enriched separately
+      // by resolveSharedCatalogItem above.
+      const existing = await tx.userVocabulary.findUnique({
+        where: {
+          userId_vocabularyItemId: {
+            userId: user.id,
+            vocabularyItemId: catalogItem.id,
+          },
+        },
       });
 
-      let ownedId: string;
-      let reviewCardId: string | null = null;
-      let finalMeaning = newMeaning;
-      let finalMemoryMnemonic = newMemoryMnemonic;
-      let finalNotes = newNotes;
-      let finalDeckId = deckId;
-      let finalSource: string | null = null;
+      let userVocabularyId: string;
 
       if (existing) {
-        // UPSERT: Update existing vocabulary
-        // Determine what should be updated
+        // UPSERT: update the join row. Longer/richer wins for the meaning and
+        // mnemonic, notes append, and an archived word is brought back.
         const updates: Record<string, string | boolean | null> = {};
         let shouldUpdate = false;
 
-        // Update meaning if new is longer/richer or old is empty
-        if (newMeaning && (!existing.meaning || newMeaning.length > existing.meaning.length)) {
-          updates.meaning = newMeaning;
+        const currentMeaning = existing.personalMeaning ?? catalogItem.meaning;
+        if (newMeaning && newMeaning.length > currentMeaning.length) {
+          updates.personalMeaning = newMeaning;
           shouldUpdate = true;
         }
 
-        // Update optional fields: new non-empty replaces empty, longer replaces shorter
-        if (newPartOfSpeech && !existing.partOfSpeech) {
-          updates.partOfSpeech = newPartOfSpeech;
-          shouldUpdate = true;
-        }
-
-        if (newMeasureWord && !existing.measureWord) {
-          updates.measureWord = newMeasureWord;
-          shouldUpdate = true;
-        }
-
-        if (newExampleChinese && (!existing.exampleChinese || newExampleChinese.length > existing.exampleChinese.length)) {
-          updates.exampleChinese = newExampleChinese;
-          shouldUpdate = true;
-        }
-
-        if (newExamplePinyin && (!existing.examplePinyin || newExamplePinyin.length > existing.examplePinyin.length)) {
-          updates.examplePinyin = newExamplePinyin;
-          shouldUpdate = true;
-        }
-
-        if (newExampleEnglish && (!existing.exampleEnglish || newExampleEnglish.length > existing.exampleEnglish.length)) {
-          updates.exampleEnglish = newExampleEnglish;
-          shouldUpdate = true;
-        }
-
-        if (newCharacterBreakdown && (!existing.characterBreakdown || newCharacterBreakdown.length > existing.characterBreakdown.length)) {
-          updates.characterBreakdown = newCharacterBreakdown;
-          shouldUpdate = true;
-        }
-
-        if (newWordFormationNote && (!existing.wordFormationNote || newWordFormationNote.length > existing.wordFormationNote.length)) {
-          updates.wordFormationNote = newWordFormationNote;
-          shouldUpdate = true;
-        }
-
-        if (newMemoryMnemonic && (!existing.memoryMnemonic || newMemoryMnemonic.length > existing.memoryMnemonic.length)) {
+        if (
+          newMemoryMnemonic &&
+          (!existing.memoryMnemonic ||
+            newMemoryMnemonic.length > existing.memoryMnemonic.length)
+        ) {
           updates.memoryMnemonic = newMemoryMnemonic;
           shouldUpdate = true;
         }
 
-        // Merge notes if both exist
         if (newNotes) {
-          if (!existing.notes) {
-            updates.notes = newNotes;
+          if (!existing.personalNotes) {
+            updates.personalNotes = newNotes;
             shouldUpdate = true;
-          } else if (!existing.notes.includes(newNotes)) {
-            updates.notes = `${existing.notes}\n\n${newNotes}`;
+          } else if (!existing.personalNotes.includes(newNotes)) {
+            updates.personalNotes = `${existing.personalNotes}\n\n${newNotes}`;
             shouldUpdate = true;
           }
         }
@@ -226,24 +189,9 @@ export async function importVocabularyCsv(
           shouldUpdate = true;
         }
 
-        if (levelId && levelId !== existing.levelId) {
-          updates.levelId = levelId;
-          shouldUpdate = true;
-        }
-
-        if (characterNotes.length > 0 && existing.characterNotes.length === 0) {
-          await tx.vocabularyCharacterNote.createMany({
-            data: characterNotes.map((note) => ({
-              ...note,
-              vocabularyItemId: existing.id,
-            })),
-          });
-          shouldUpdate = true;
-        }
-
         if (shouldUpdate) {
           if (Object.keys(updates).length > 0) {
-            await tx.vocabularyItem.update({
+            await tx.userVocabulary.update({
               where: { id: existing.id },
               data: updates,
             });
@@ -263,66 +211,30 @@ export async function importVocabularyCsv(
           });
         }
 
-        ownedId = existing.id;
-        reviewCardId = existing.reviewCard?.id ?? null;
-        finalMeaning = (updates.meaning as string | undefined) ?? existing.meaning;
-        finalMemoryMnemonic =
-          (updates.memoryMnemonic as string | undefined) ??
-          existing.memoryMnemonic;
-        finalNotes = (updates.notes as string | undefined) ?? existing.notes;
-        finalDeckId = (updates.deckId as string | undefined) ?? existing.deckId;
-        finalSource = existing.source;
+        userVocabularyId = existing.id;
       } else {
-        // Create new vocabulary
-        const createdItem = await tx.vocabularyItem.create({
+        // Create the user's join row for the shared entry.
+        const createdJoin = await tx.userVocabulary.create({
           data: {
             userId: user.id,
-            hanzi,
-            pinyin,
-            meaning: newMeaning,
-            deckId,
-            levelId,
-            partOfSpeech: newPartOfSpeech,
-            measureWord: newMeasureWord,
-            exampleChinese: newExampleChinese,
-            examplePinyin: newExamplePinyin,
-            exampleEnglish: newExampleEnglish,
-            characterBreakdown: newCharacterBreakdown,
-            wordFormationNote: newWordFormationNote,
+            vocabularyItemId: catalogItem.id,
+            deckId: deckId ?? null,
+            personalMeaning:
+              newMeaning === catalogItem.meaning ? null : newMeaning,
             memoryMnemonic: newMemoryMnemonic,
-            notes: newNotes,
-            characterNotes: {
-              create: characterNotes,
-            },
+            personalNotes: newNotes,
+            isArchived: false,
           },
           select: { id: true },
         });
-        ownedId = createdItem.id;
+        userVocabularyId = createdJoin.id;
         created += 1;
       }
 
-      // This user's own learning data for the shared entry.
-      const perUserData = {
-        deckId: finalDeckId,
-        personalMeaning:
-          finalMeaning === catalogItem.meaning ? null : finalMeaning,
-        memoryMnemonic: finalMemoryMnemonic,
-        personalNotes: finalNotes,
-        source: finalSource,
-        isArchived: false,
-      };
-      const userVocabulary = await upsertUserVocabulary(tx, {
-        userId: user.id,
-        vocabularyItemId: catalogItem.id,
-        create: perUserData,
-        update: perUserData,
-      });
-
-      // Ensure a review card exists (in case vocabulary was created without one)
-      await ensureOwnedReviewCard(tx, {
-        vocabularyItemId: ownedId,
-        reviewCardId,
-        userVocabularyId: userVocabulary.id,
+      // Ensure a review card hangs off the join (in case a previous run left the
+      // word without one).
+      await ensureReviewCard(tx, {
+        userVocabularyId,
         dueAt: now,
       });
     }

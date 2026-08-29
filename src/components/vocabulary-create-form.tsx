@@ -1,7 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import type { Deck, Level, VocabularyCharacterNote, VocabularyItem } from "@prisma/client";
+import type {
+  Deck,
+  Level,
+  VocabularyCharacterNote,
+  VocabularyItem,
+} from "@prisma/client";
 import { serializeCharacterNotes } from "@/lib/character-notes";
 import {
   createVocabularyItem,
@@ -9,13 +14,35 @@ import {
   updateVocabularyItem,
 } from "@/lib/vocabulary";
 
+// The form edits a catalog entry plus the user's join row, so it reads the
+// per-user fields (which live on "UserVocabulary", not "VocabularyItem") in the
+// same shape as the catalog scalars.
+type VocabularyFormItem = Pick<
+  VocabularyItem,
+  | "id"
+  | "hanzi"
+  | "pinyin"
+  | "meaning"
+  | "deckId"
+  | "levelId"
+  | "partOfSpeech"
+  | "measureWord"
+  | "exampleChinese"
+  | "examplePinyin"
+  | "exampleEnglish"
+  | "characterBreakdown"
+  | "wordFormationNote"
+> & {
+  memoryMnemonic: string | null;
+  notes: string | null;
+  characterNotes?: VocabularyCharacterNote[];
+};
+
 type VocabularyCreateFormProps = {
   levels: Level[];
   decks: Deck[];
   defaultDeckId?: string;
-  vocabularyItem?: VocabularyItem & {
-    characterNotes?: VocabularyCharacterNote[];
-  };
+  vocabularyItem?: VocabularyFormItem;
 };
 
 const initialState: CreateVocabularyState = {};

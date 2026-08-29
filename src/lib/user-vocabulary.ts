@@ -2,21 +2,18 @@ import type { CharacterNoteInput } from "@/lib/character-notes";
 import { prisma } from "@/lib/db";
 
 /**
- * Write helpers for the catalog / per-user vocabulary split (Phase 3).
+ * Write helpers for the catalog / per-user vocabulary split (Phase 5).
  *
- * Every vocabulary write now maintains three things:
+ * Every vocabulary write maintains two things:
  *
- *   1. a single shared catalog "VocabularyItem" (userId: null) per (hanzi, pinyin),
+ *   1. a single shared catalog "VocabularyItem" per (hanzi, pinyin),
  *   2. one "UserVocabulary" per (user, catalog item) holding that user's own
  *      mnemonic, notes, personal meaning, deck membership and archive state,
- *   3. the caller's legacy owned "VocabularyItem" row, kept in sync so the read
- *      paths - which still scope by "VocabularyItem.userId" until Phase 4 - and
- *      the review scheduler keep working unchanged.
+ *      with exactly one "ReviewCard" hanging off the join.
  *
- * (3) is transitional. "ReviewCard.vocabularyItemId" is still NOT NULL and
- * UNIQUE, so a user attaching to a shared catalog row cannot own a card through
- * the catalog; their card hangs off their legacy row and is linked forward via
- * "ReviewCard.userVocabularyId". Phase 5 drops the legacy rows and the old link.
+ * The legacy owned "VocabularyItem" rows and the "ReviewCard.vocabularyItemId"
+ * link are gone (Migration B). Catalog language data is shared; everything a
+ * user personalizes lives on the join row.
  */
 
 export type VocabularyTx = Parameters<
@@ -59,9 +56,10 @@ export type UserVocabularyData = {
 /**
  * Find - or create - the one shared catalog entry for a (hanzi, pinyin) pair.
  *
- * Existing catalog rows are only ever *enriched*: an empty column may be filled
- * in, but a value another user already relies on is never overwritten, and
- * hanzi/pinyin/meaning are never rewritten here.
+ * The (hanzi, pinyin) unique index makes the spelling a stable key, so the
+ * lookup is exact. Existing catalog rows are only ever *enriched*: an empty
+ * column may be filled in, but a value another user already relies on is never
+ * overwritten, and hanzi/pinyin/meaning are never rewritten here.
  */
 export async function resolveSharedCatalogItem(
   tx: VocabularyTx,
@@ -71,17 +69,8 @@ export async function resolveSharedCatalogItem(
   const hanzi = fields.hanzi.trim();
   const pinyin = fields.pinyin.trim();
 
-  // The DB-level unique index on (hanzi, pinyin) is deferred to Phase 5, so
-  // several rows can still share a spelling. Pick the shared unowned row
-  // deterministically rather than relying on findUnique against an index that
-  // does not exist yet.
-  const existing = await tx.vocabularyItem.findFirst({
-    where: {
-      hanzi,
-      pinyin,
-      userId: null,
-    },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+  const existing = await tx.vocabularyItem.findUnique({
+    where: { hanzi_pinyin: { hanzi, pinyin } },
   });
 
   if (existing) {
@@ -122,7 +111,6 @@ export async function resolveSharedCatalogItem(
 
   const created = await tx.vocabularyItem.create({
     data: {
-      userId: null,
       deckId: null,
       hanzi,
       pinyin,
@@ -176,131 +164,33 @@ export async function upsertUserVocabulary(
 }
 
 /**
- * The caller's own legacy row for a spelling, if they already have one. Used to
- * keep manual add / import / deck copy idempotent per user instead of minting a
- * second owned row for the same word.
+ * Guarantee the user's join row has a review card. The card hangs off the join
+ * ("ReviewCard.userVocabularyId" is UNIQUE and NOT NULL), so an existing card is
+ * never touched - only a missing one is created.
  */
-export async function findOwnedVocabularyItem(
+export async function ensureReviewCard(
   tx: VocabularyTx,
-  args: { userId: string; hanzi: string; pinyin: string },
+  args: { userVocabularyId: string; dueAt: Date },
 ) {
-  return tx.vocabularyItem.findFirst({
-    where: {
-      userId: args.userId,
-      hanzi: args.hanzi.trim(),
-      pinyin: args.pinyin.trim(),
-    },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    include: {
-      reviewCard: {
-        select: { id: true, status: true, userVocabularyId: true },
-      },
-      characterNotes: true,
-    },
-  });
-}
-
-/**
- * Guarantee the user's legacy row has a review card, and point that card at
- * their join row so Phase 4 can read scheduling state through UserVocabulary.
- *
- * "ReviewCard.userVocabularyId" is UNIQUE, so the link is only written when no
- * other card already holds it.
- */
-export async function ensureOwnedReviewCard(
-  tx: VocabularyTx,
-  args: {
-    vocabularyItemId: string;
-    reviewCardId: string | null;
-    userVocabularyId: string;
-    dueAt: Date;
-  },
-) {
-  const linkHolder = await tx.reviewCard.findUnique({
+  const created = await tx.reviewCard.upsert({
     where: { userVocabularyId: args.userVocabularyId },
+    create: { userVocabularyId: args.userVocabularyId, dueAt: args.dueAt },
+    update: {},
     select: { id: true },
   });
 
-  if (!args.reviewCardId) {
-    const created = await tx.reviewCard.create({
-      data: {
-        vocabularyItemId: args.vocabularyItemId,
-        userVocabularyId: linkHolder ? null : args.userVocabularyId,
-        dueAt: args.dueAt,
-      },
-      select: { id: true },
-    });
-
-    return created.id;
-  }
-
-  if (!linkHolder) {
-    await tx.reviewCard.update({
-      where: { id: args.reviewCardId },
-      data: { userVocabularyId: args.userVocabularyId },
-    });
-  }
-
-  return args.reviewCardId;
+  return created.id;
 }
 
 /**
- * Drop a stale join row - used when an edit repoints a word at a different
- * catalog entry.
- *
- * "UserVocabulary" cascades to "ReviewCard", so the card must be unlinked
- * first; deleting while it still points here would take the card and its whole
- * review history with it.
+ * Delete a stale join row - used when an edit repoints a word at a different
+ * catalog entry. The join cascades to its review card, so the card and its
+ * review history go with it; the old spelling is no longer part of this user's
+ * study set.
  */
-export async function detachUserVocabulary(
+export async function deleteUserVocabulary(
   tx: VocabularyTx,
   userVocabularyId: string,
 ) {
-  await tx.reviewCard.updateMany({
-    where: { userVocabularyId },
-    data: { userVocabularyId: null },
-  });
-
   await tx.userVocabulary.delete({ where: { id: userVocabularyId } });
-}
-
-/** Resolve the join row backing one of the caller's legacy owned rows. */
-export async function findUserVocabularyForOwnedItem(
-  tx: VocabularyTx,
-  args: {
-    userId: string;
-    hanzi: string;
-    pinyin: string;
-    reviewCardUserVocabularyId: string | null;
-  },
-) {
-  if (args.reviewCardUserVocabularyId) {
-    return args.reviewCardUserVocabularyId;
-  }
-
-  const catalogItem = await tx.vocabularyItem.findFirst({
-    where: {
-      hanzi: args.hanzi.trim(),
-      pinyin: args.pinyin.trim(),
-      userId: null,
-    },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    select: { id: true },
-  });
-
-  if (!catalogItem) {
-    return null;
-  }
-
-  const userVocabulary = await tx.userVocabulary.findUnique({
-    where: {
-      userId_vocabularyItemId: {
-        userId: args.userId,
-        vocabularyItemId: catalogItem.id,
-      },
-    },
-    select: { id: true },
-  });
-
-  return userVocabulary?.id ?? null;
 }

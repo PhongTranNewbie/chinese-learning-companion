@@ -49,8 +49,9 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
   }
 
   // A lesson's linked deck can be the user's own or a public/template deck.
-  // Owned decks count active words through the user's join rows; public decks
-  // keep counting their own VocabularyItems, exactly as before.
+  // Owned decks count active words and due cards through the user's join rows;
+  // public decks count their shared catalog items - they have no per-user cards
+  // (Phase 5 removed template cards), so nothing is due until the deck is copied.
   const linkedDeckIds = [
     ...new Set(
       course.lessons
@@ -63,12 +64,9 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
       ? prisma.vocabularyItem.findMany({
           where: {
             deckId: { in: linkedDeckIds },
-            userId: null,
-            isArchived: false,
           },
           select: {
             deckId: true,
-            reviewCard: { select: { status: true, dueAt: true } },
           },
         })
       : Promise.resolve([]),
@@ -94,11 +92,22 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
     if (!lesson.deck || deckStats.has(lesson.deck.id)) {
       continue;
     }
+    const deckId = lesson.deck.id;
     const isPublicDeck = lesson.deck.userId === null;
-    const rows = isPublicDeck
-      ? publicItems.filter((item) => item.deckId === lesson.deck!.id)
-      : ownedMemberships.filter((item) => item.deckId === lesson.deck!.id);
-    deckStats.set(lesson.deck.id, {
+
+    if (isPublicDeck) {
+      // Template decks have no per-user cards, so nothing is due until copied.
+      deckStats.set(deckId, {
+        vocabularyCount: publicItems.filter(
+          (item) => item.deckId === deckId,
+        ).length,
+        dueCount: 0,
+      });
+      continue;
+    }
+
+    const rows = ownedMemberships.filter((item) => item.deckId === deckId);
+    deckStats.set(deckId, {
       vocabularyCount: rows.length,
       dueCount: rows.filter(
         (item) =>

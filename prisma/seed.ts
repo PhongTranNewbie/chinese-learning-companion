@@ -25,6 +25,9 @@ type DemoVocabulary = {
   wordFormationNote?: string;
   memoryMnemonic?: string;
   notes?: string;
+  // SRS fields are retained as seed metadata only. Phase 5 removed template
+  // cards entirely - cards are created per user when a starter deck is copied -
+  // so none of these schedule anything.
   dueOffsetDays: number;
   intervalDays: number;
   easeFactor?: number;
@@ -350,8 +353,6 @@ const additionalDemoVocabulary: DemoVocabulary[] = [
 ];
 
 async function main() {
-  const now = new Date();
-
   for (const level of levels) {
     await prisma.level.upsert({
       where: { code: level.code },
@@ -369,7 +370,7 @@ async function main() {
   }
 
   for (const item of [...demoVocabulary, ...additionalDemoVocabulary]) {
-    await upsertVocabularyItem({ item, deckByName, now });
+    await upsertVocabularyItem({ item, deckByName });
   }
 
   for (const course of demoCourses) {
@@ -382,9 +383,13 @@ async function upsertDeck(deck: {
   description: string;
   isArchived: boolean;
 }) {
+  // The seed only ever owns template decks. Scoping to `userId: null` keeps
+  // the upsert from matching (and updating) a user-owned deck that happens to
+  // share a seed name - the same owner-awareness the vocabulary refactor enforces.
   const existing = await prisma.deck.findFirst({
     where: {
       name: deck.name,
+      userId: null,
     },
   });
 
@@ -411,11 +416,9 @@ async function upsertDeck(deck: {
 async function upsertVocabularyItem({
   item,
   deckByName,
-  now,
 }: {
   item: DemoVocabulary;
   deckByName: Map<string, { id: string }>;
-  now: Date;
 }) {
   const level = await prisma.level.findUnique({
     where: {
@@ -426,8 +429,6 @@ async function upsertVocabularyItem({
     },
   });
   const deck = item.deckName ? deckByName.get(item.deckName) : null;
-  const dueAt = addDays(now, item.dueOffsetDays);
-  const reviewStatus = item.reviewStatus ?? "ACTIVE";
 
   const data = {
     hanzi: item.hanzi,
@@ -442,25 +443,18 @@ async function upsertVocabularyItem({
     exampleEnglish: item.exampleEnglish,
     characterBreakdown: item.characterBreakdown ?? null,
     wordFormationNote: item.wordFormationNote ?? null,
-    memoryMnemonic: item.memoryMnemonic ?? null,
-    notes: item.notes ?? null,
-    isArchived: item.isArchived ?? false,
+    catalogMnemonic: item.memoryMnemonic ?? null,
+    catalogNotes: item.notes ?? null,
   };
 
-  // Look up by (hanzi, pinyin) only. Including `meaning` here meant that
-  // editing a seed word's meaning created a second row instead of updating the
-  // first, which is where most duplicate catalog rows came from.
-  // `userId: null` keeps the seed inside the catalog rows it owns: without it,
-  // the wider lookup could match a row a user has made their own and overwrite
-  // their meaning, deck, mnemonic, notes and character notes.
-  const existing = await prisma.vocabularyItem.findFirst({
+  // Look up by (hanzi, pinyin) only - the unique index is the catalog contract.
+  // Including `meaning` here used to mean editing a seed word's meaning created
+  // a second row instead of updating the first. Template rows carry no per-user
+  // data (Phase 5 removed template cards), so re-seeding only ever updates the
+  // shared catalog entry.
+  const existing = await prisma.vocabularyItem.findUnique({
     where: {
-      hanzi: item.hanzi,
-      pinyin: item.pinyin,
-      userId: null,
-    },
-    include: {
-      reviewCard: true,
+      hanzi_pinyin: { hanzi: item.hanzi, pinyin: item.pinyin },
     },
   });
 
@@ -470,30 +464,7 @@ async function upsertVocabularyItem({
         where: {
           id: existing.id,
         },
-        data: {
-          ...data,
-          reviewCard: existing.reviewCard
-            ? {
-                update: {
-                  dueAt,
-                  intervalDays: item.intervalDays,
-                  easeFactor: item.easeFactor ?? 2.5,
-                  reviewCount: item.reviewCount ?? 0,
-                  lapseCount: item.lapseCount ?? 0,
-                  status: reviewStatus,
-                },
-              }
-            : {
-                create: {
-                  dueAt,
-                  intervalDays: item.intervalDays,
-                  easeFactor: item.easeFactor ?? 2.5,
-                  reviewCount: item.reviewCount ?? 0,
-                  lapseCount: item.lapseCount ?? 0,
-                  status: reviewStatus,
-                },
-              },
-        },
+        data,
       });
       await replaceCharacterNotes({
         tx,
@@ -506,19 +477,7 @@ async function upsertVocabularyItem({
 
   await prisma.$transaction(async (tx) => {
     const created = await tx.vocabularyItem.create({
-      data: {
-        ...data,
-        reviewCard: {
-          create: {
-            dueAt,
-            intervalDays: item.intervalDays,
-            easeFactor: item.easeFactor ?? 2.5,
-            reviewCount: item.reviewCount ?? 0,
-            lapseCount: item.lapseCount ?? 0,
-            status: reviewStatus,
-          },
-        },
-      },
+      data,
       select: {
         id: true,
       },
@@ -639,12 +598,6 @@ async function upsertCourse({
       });
     }
   }
-}
-
-function addDays(date: Date, days: number) {
-  const result = new Date(date);
-  result.setUTCDate(result.getUTCDate() + days);
-  return result;
 }
 
 main()

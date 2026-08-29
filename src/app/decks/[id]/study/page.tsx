@@ -41,10 +41,15 @@ export default async function DeckStudyPage({
     notFound();
   }
 
-  // A starter deck (userId null) is studied from the deck's own VocabularyItems;
-  // an owned deck is studied through the signed-in user's join rows for it.
+  const isPublicDeck = deck.userId === null;
+
+  // A starter/template deck has no per-user cards - template cards were removed
+  // in Phase 5, and a card can only hang off a user's join row - so studying one
+  // requires copying it first. Guests and users who have not copied it see the
+  // copy prompt instead of cards. An owned deck is studied through the
+  // signed-in user's join rows.
   const cards =
-    deck.userId !== null && user
+    !isPublicDeck && user
       ? await getOwnedStudyCards(
           user.id,
           deck.id,
@@ -52,12 +57,7 @@ export default async function DeckStudyPage({
           now,
           preferences.deckStudySessionSize,
         )
-      : await getStarterStudyCards(
-          deck.id,
-          dueOnly,
-          now,
-          preferences.deckStudySessionSize,
-        );
+      : [];
 
   return (
     <main className="bg-slate-50">
@@ -108,26 +108,54 @@ export default async function DeckStudyPage({
             <EmptyState
               icon="学"
               title={
-                dueOnly ? "This deck is caught up" : "This deck is ready for words"
+                isPublicDeck
+                  ? "Copy this starter deck to study it"
+                  : dueOnly
+                    ? "This deck is caught up"
+                    : "This deck is ready for words"
               }
               actionHref={
-                dueOnly ? `/decks/${deck.id}/study` : `/decks/${deck.id}`
-              }
-              actionLabel={dueOnly ? "Study all cards" : "Back to deck"}
-              secondaryHref={
-                dueOnly
+                isPublicDeck
                   ? `/decks/${deck.id}`
-                  : user
-                    ? `/vocabulary/new?deckId=${deck.id}`
+                  : dueOnly
+                    ? `/decks/${deck.id}/study`
+                    : `/decks/${deck.id}`
+              }
+              actionLabel={
+                isPublicDeck
+                  ? "Back to deck"
+                  : dueOnly
+                    ? "Study all cards"
+                    : "Back to deck"
+              }
+              secondaryHref={
+                isPublicDeck
+                  ? user
+                    ? `/decks/${deck.id}`
                     : "/login"
+                  : dueOnly
+                    ? `/decks/${deck.id}`
+                    : user
+                      ? `/vocabulary/new?deckId=${deck.id}`
+                      : "/login"
               }
               secondaryLabel={
-                dueOnly ? "Back to deck" : user ? "Add vocabulary" : "Log in to add"
+                isPublicDeck
+                  ? user
+                    ? "Copy this deck"
+                    : "Log in to copy"
+                  : dueOnly
+                    ? "Back to deck"
+                    : user
+                      ? "Add vocabulary"
+                      : "Log in to add"
               }
             >
-              {dueOnly
-                ? "No cards are due right now. Study all cards if you want extra practice, or come back later."
-                : "Add or import vocabulary when you are ready to build this study set."}
+              {isPublicDeck
+                ? "Copy this starter deck into your library to start building review progress."
+                : dueOnly
+                  ? "No cards are due right now. Study all cards if you want extra practice, or come back later."
+                  : "Add or import vocabulary when you are ready to build this study set."}
             </EmptyState>
           </div>
         ) : (
@@ -145,74 +173,11 @@ export default async function DeckStudyPage({
   );
 }
 
-/** Study a starter/template deck: read the deck's own VocabularyItems. */
-async function getStarterStudyCards(
-  deckId: string,
-  dueOnly: boolean,
-  now: Date,
-  take: number,
-) {
-  const items = await prisma.vocabularyItem.findMany({
-    where: {
-      deckId,
-      isArchived: false,
-      reviewCard: dueOnly
-        ? {
-            status: "ACTIVE",
-            dueAt: {
-              lte: now,
-            },
-          }
-        : {
-            status: "ACTIVE",
-          },
-    },
-    include: {
-      reviewCard: true,
-      level: true,
-      characterNotes: {
-        orderBy: {
-          sortOrder: "asc",
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "asc",
-    },
-    take,
-  });
-
-  return items
-    .filter((item) => item.reviewCard)
-    .map((item) => ({
-      id: item.id,
-      reviewCardId: item.reviewCard!.id,
-      hanzi: item.hanzi,
-      pinyin: item.pinyin,
-      meaning: item.meaning,
-      levelName: item.level?.name ?? null,
-      exampleChinese: item.exampleChinese,
-      examplePinyin: item.examplePinyin,
-      exampleEnglish: item.exampleEnglish,
-      characterBreakdown: item.characterBreakdown,
-      wordFormationNote: item.wordFormationNote,
-      memoryMnemonic: item.memoryMnemonic,
-      characterNotes: item.characterNotes.map((note) => ({
-        id: note.id,
-        character: note.character,
-        components: note.components,
-        componentMeanings: note.componentMeanings,
-        mnemonicStory: note.mnemonicStory,
-      })),
-      reviewCount: item.reviewCard!.reviewCount,
-    }));
-}
-
 /**
  * Study an owned deck through the signed-in user's join rows for it. Catalog
  * scalars come from the join's catalog entry; the per-user mnemonic, meaning
- * and review card come from the join itself. Card ids stay keyed to the legacy
- * owned row, resolved by spelling, so the session behaves exactly as before.
+ * and review card come from the join itself. Card ids are the join's card ids,
+ * and word ids are the catalog entry ids.
  */
 async function getOwnedStudyCards(
   userId: string,
@@ -256,29 +221,8 @@ async function getOwnedStudyCards(
     take,
   });
 
-  if (userVocabularies.length === 0) {
-    return [];
-  }
-
-  const ownedRows = await prisma.vocabularyItem.findMany({
-    where: {
-      userId,
-      OR: userVocabularies.map((uv) => ({
-        hanzi: uv.vocabularyItem.hanzi,
-        pinyin: uv.vocabularyItem.pinyin,
-      })),
-    },
-    select: { id: true, hanzi: true, pinyin: true },
-  });
-  const ownedIdBySpelling = new Map(
-    ownedRows.map((row) => [`${row.hanzi} ${row.pinyin}`, row.id]),
-  );
-
   return userVocabularies.map((uv) => ({
-    id:
-      ownedIdBySpelling.get(
-        `${uv.vocabularyItem.hanzi} ${uv.vocabularyItem.pinyin}`,
-      ) ?? uv.vocabularyItem.id,
+    id: uv.vocabularyItem.id,
     reviewCardId: uv.reviewCard!.id,
     hanzi: uv.vocabularyItem.hanzi,
     pinyin: uv.vocabularyItem.pinyin,
